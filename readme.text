@@ -1,0 +1,6 @@
+Iteration 1 functionality:
+    Users:
+    cs_user, pass123
+    scs_user, pass456
+
+    cs_user only has access to the register event function.
