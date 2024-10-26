@@ -6,6 +6,8 @@ class Role:
     ADMINISTRATIVE_MANAGER = "AdministrativeManager"
     PRODUCTION_MANAGER = "ProductionManager"
 
+""" --------USER CLASS --------"""
+
 class User:
     def __init__(self, username, password, role):
         self.username = username
@@ -14,6 +16,9 @@ class User:
 
     def verify_password(self, input_password):
         return self.password == input_password
+
+
+""" --------EVENT CLASS --------"""
 
 class EventRequest:
     def __init__(self, event_name, date, time, location, client_name):
@@ -30,9 +35,7 @@ class EventRequest:
         }
 
     def first_approval(self, approved, reviewer):
-        """
-        Handles the first approval by Senior Customer Service.
-        """
+        """Handles the first approval by Senior Customer Service."""
         if approved:
             self.status = "Pending Financial Assessment"
             self.comments["first_approval"] = f"Approved by {reviewer}"
@@ -40,18 +43,17 @@ class EventRequest:
             self.status = "Rejected"
             self.comments["first_approval"] = f"Rejected by {reviewer}"
 
-    
-    def financial_assessment(self, approved, budget_comments, reviewer):
+    def financial_comment(self, comment, reviewer):
         """
-        Handles financial assessment by the Financial Manager.
+        Adds a financial comment and updates the event status to Pending Final Approval.
+        
+        Args:
+        - comment (str): The financial comment added by the Financial Manager.
+        - reviewer (str): The Financial Manager's username.
         """
         if self.status == "Pending Financial Assessment":
-            if approved:
-                self.status = "Pending Final Approval"
-                self.comments["financial"] = f"Approved by {reviewer}: {budget_comments}"
-            else:
-                self.status = "Rejected"
-                self.comments["financial"] = f"Rejected by {reviewer}: {budget_comments}"
+            self.comments["financial"] = f"Commented by {reviewer}: {comment}"
+            self.status = "Pending Final Approval"  # Move to next status
 
     def final_approval(self, approved, reviewer):
         """
@@ -59,12 +61,15 @@ class EventRequest:
         """
         if self.status == "Pending Final Approval":
             if approved:
-                self.status = "Approved"
+                self.status = "Approved"  # Final approval, event is fully approved
                 self.comments["final_approval"] = f"Approved by {reviewer}"
             else:
                 self.status = "Rejected"
                 self.comments["final_approval"] = f"Rejected by {reviewer}"
 
+
+
+""" --------TASK CLASS --------"""
 
 class Task:
     def __init__(self, task_name, priority, assigned_team, created_by):

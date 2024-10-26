@@ -8,6 +8,9 @@ class EventManager:
         self.storage_file = storage_file
         self.events = self.load_events()  # Load events from file
 
+
+    """------------ SET AND GET FROM JSON FILE ---------------"""
+
     def save_events(self):
         """Save events to a JSON file."""
         with open(self.storage_file, "w") as f:
@@ -26,15 +29,8 @@ class EventManager:
             return []
 
 
-    def first_approval(self, event, approved, reviewer):
-        if event.status == "Pending First Approval":
-            if approved:
-                event.status = "Pending Financial Assessment"
-                event.comments["first_approval"] = f"Approved by {reviewer}"
-            else:
-                event.status = "Rejected"
-                event.comments["first_approval"] = f"Rejected by {reviewer}"
-        return event
+
+    """ ------------  ADDS NEW EVENT + error handler for duplicate names ------------  """ 
 
     def add_event(self, event):
         """
@@ -53,13 +49,83 @@ class EventManager:
         return any(event.event_name == event_name for event in self.events)
 
 
-    def get_pending_events(self):
-        """Returns a list of events that are pending approval."""
+
+
+    """ ------------  EVENT STATUS UPDATING ------------  """
+
+    """ ------------  FIRST APPROVAL OF NEW EVENT ------------  """
+
+    def first_approval(self, event, approved, reviewer):
+        if event.status == "Pending First Approval":
+            if approved:
+                event.status = "Pending Financial Assessment"
+                event.comments["first_approval"] = f"Approved by {reviewer}"
+            else:
+                event.status = "Rejected"
+                event.comments["first_approval"] = f"Rejected by {reviewer}"
+        return event
+
+
+    """ ------------  FINANCIAL COMMENTING OF EVENT that has passed the first approval step ------------ """
+
+    def financial_comment(self, event, approved, reviewer):
+        if event.status == "Pending Financial Assessment":
+            event.status = "Pending Final Approval"
+            event.comments["financial_comment"] = f"Commented by {reviewer}"
+        return event
+
+
+    """ ------------ FINAL APPROVAL OF EVENT that has been given comment by financial manager------------   """
+
+    def final_approval(self, event, approved, reviewer):
+        if event.status == "Pending Final Approval":
+            if approved:
+                event.status = "Approved"
+                event.comments["final_approval"] = f"Approved by {reviewer}"
+            else:
+                event.status = "Rejected"
+                event.comments["final_approval"] = f"Rejected by {reviewer}"
+        return event     
+
+
+
+    """ ------------ EVENT LISTS FOR APPROVAL VIEWS ------------  
+
+    ------------  FIRST APPROVAL VIEW ------------   """
+
+    def get_pending_events_for_first_approval(self):
+        """Returns a list of events that are pending first approval."""
         return [event for event in self.events if event.status == "Pending First Approval"]
 
-    def get_approved_events(self):
-        """Returns a list of events that have been approved by SCS."""
+    def get_approved_events_for_first_approval(self):
+        """Returns a list of events that have been approved by SCS but not yet commented by financial manager."""
         return [event for event in self.events if event.status == "Pending Financial Assessment"]
+
+    """ ------------  FINANCIAL ASSESSMENT VIEW ------------   """
+
+    def get_pending_events_for_fin_com(self):
+        """Returns a list of events that are pending financial assessment."""
+        return [event for event in self.events if event.status == "Pending Financial Assessment"]
+
+    def get_assessed_events_for_fin_com(self):
+        """Returns a list of events that have been financially assessed but not yet final approved."""
+        return [event for event in self.events if event.status == "Pending Final Approval"]
+
+    
+    """ ------------  FINAL APPROVAL VIEW ------------   """
+
+    def get_pending_events_for_final_approval(self):
+        """Returns a list of events that are pending final approval."""
+        return [event for event in self.events if event.status == "Pending Final Approval"]
+
+    def get_approved_events_for_final_approval(self):
+        """Returns a list of events that have been finally approved."""
+        return [event for event in self.events if event.status == "Approved"]
+
+
+
+
+    """ ------------  SERIALIZE EVENT FOR STORAGE TO JSON------------   """
 
     def serialize_event(self, event):
         """Convert an EventRequest object to a serializable dictionary."""
