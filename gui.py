@@ -15,6 +15,7 @@ class EventOrganizerApp:
         self.current_user = None
         self.create_login_screen()
 
+""" LOGIN STORY """
 
     def create_login_screen(self):
         self.clear_screen()
@@ -55,6 +56,10 @@ class EventOrganizerApp:
         messagebox.showinfo("Logout", "You have been logged out.")
         self.create_login_screen()  # Redirect to login screen
 
+
+
+
+""" EVENT CREATION STORY (CS VIEW) """
 
     def create_event_registration_screen(self):
         self.clear_screen()
@@ -112,6 +117,9 @@ class EventOrganizerApp:
         messagebox.showinfo("Event Registered", f"Event '{event_name}' has been successfully registered.")
     
     
+
+    """ FIRST APPROVAL STORY (SCS VIEW) """
+
     def create_first_approval_screen(self):
         """
         Creates the first approval screen for Senior Customer Service (SCS).
