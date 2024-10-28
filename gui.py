@@ -11,7 +11,7 @@ class EventOrganizerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Event Organizer")
-        self.root.geometry("800x600")
+        self.root.geometry("800x800")
         self.event_manager = EventManager()
         self.task_manager = TaskManager()
         self.recruitment_manager = RecruitmentManager()
