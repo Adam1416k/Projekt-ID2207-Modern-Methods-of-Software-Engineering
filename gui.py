@@ -77,6 +77,8 @@ class EventOrganizerApp:
             self.create_financial_comment_screen()  
         elif has_access(self.current_user, Role.ADMINISTRATIVE_MANAGER):
             self.create_final_approval_screen()
+        elif has_access(self.current_user, Role.PRODUCTION_MANAGER):
+            self.create_task_screen()
         else:
             messagebox.showerror("Access Denied", "You do not have access to any screens.")
 
@@ -217,6 +219,27 @@ class EventOrganizerApp:
             for event in final_approved_events:
                 event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}, Status: {event.status}"
                 self.final_approved_events_listbox.insert(tk.END, event_info)
+
+        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
+
+        
+        # Third tab: All Rejected Events
+        rejected_tab = tk.Frame(notebook)
+        notebook.add(rejected_tab, text="Rejected Events")
+
+        tk.Label(rejected_tab, text="All Rejected Events").pack()
+
+        self.rejected_events_listbox = tk.Listbox(rejected_tab, width=80, height=10)
+        self.rejected_events_listbox.pack()
+
+        rejected_events = self.event_manager.get_rejected_events()
+        
+        if not rejected_events:
+            self.rejected_events_listbox.insert(tk.END, "No rejected events.")
+        else:
+            for event in rejected_events:
+                event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}, Status: {event.status}"
+                self.rejected_events.insert(tk.END, event_info)
 
         tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
 
@@ -444,6 +467,101 @@ class EventOrganizerApp:
     def clear_screen(self):
         for widget in self.root.winfo_children():
             widget.destroy()
+
+    
+
+    """ ---------- TASK CREATION (PRODUCTION MANAGER VIEW) ---------- """
+
+    def create_task_screen(self):
+        """Creates the task screen where a task can be created for an approved event."""
+        self.clear_screen()
+
+        # Label for selecting an approved event
+        tk.Label(self.root, text="Select an Approved Event").pack()
+
+        # Retrieve approved events for dropdown
+        approved_events = self.event_manager.get_approved_events_for_final_approval()
+        self.selected_event_var = tk.StringVar(self.root)
+        
+        # Check if there are approved events
+        if approved_events:
+            approved_event_names = [f"{event.event_name} - {event.date}" for event in approved_events]
+            self.selected_event_var.set(approved_event_names[0])  # Default to the first approved event
+        else:
+            approved_event_names = ["No Approved Events Available"]
+            self.selected_event_var.set(approved_event_names[0])
+
+        # Event selection dropdown
+        self.event_dropdown = tk.OptionMenu(self.root, self.selected_event_var, *approved_event_names)
+        self.event_dropdown.pack()
+
+        # Label and entry for task name
+        tk.Label(self.root, text="Task Name").pack()
+        self.task_name_entry = tk.Entry(self.root)
+        self.task_name_entry.pack()
+
+        # Label for task priority
+        tk.Label(self.root, text="Select Task Priority").pack()
+
+        # Create a StringVar to store the selected priority
+        self.priority_var = tk.StringVar(self.root)
+        self.priority_var.set("Medium")  # Set default priority to "Medium"
+
+        # Priority selection dropdown with "High", "Medium", and "Low"
+        self.priority_dropdown = tk.OptionMenu(self.root, self.priority_var, "High", "Medium", "Low")
+        self.priority_dropdown.pack()
+
+        # Label for selecting an assigned team
+        tk.Label(self.root, text="Select Assigned Team").pack()
+
+        # Define team options and create StringVar for selection
+        team_options = ["Marketing", "Production", "Support", "Sales"]
+        self.assigned_team_var = tk.StringVar(self.root)
+        self.assigned_team_var.set(team_options[0])  # Default to the first team
+
+        # Team selection dropdown
+        self.team_dropdown = tk.OptionMenu(self.root, self.assigned_team_var, *team_options)
+        self.team_dropdown.pack()
+
+    # Button to confirm task creation
+        tk.Button(self.root, text="Create Task", command=self.create_task_for_event).pack(pady=10)
+
+        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
+
+
+    def create_task_for_event(self):
+        if not hasattr(self, 'selected_event') or self.selected_event is None:
+            messagebox.showwarning("No Event Selected", "Please select an approved event to create a task.")
+            return
+
+        # Retrieve the task name, priority level, and assigned team
+        task_name = self.task_name_entry.get().strip()
+        if not task_name:
+            messagebox.showwarning("Empty Task Name", "Please enter a name for the task.")
+            return
+        
+        priority = self.priority_var.get()
+        assigned_team = self.assigned_team_var.get()
+        created_by = self.current_user.username
+
+        # Create the Task object with the required attributes
+        task = Task(
+            event=self.selected_event.event_name,  # Use the name of the selected event as the event reference ?? OBS OBS kolla om detta är bästa sätt
+            task_name=task_name,
+            priority=priority,
+            assigned_team=assigned_team,
+            created_by=created_by
+        )
+
+        self.task_manager.add_task(task)
+        
+        # Show a confirmation message
+        messagebox.showinfo("Task Created", f"Task '{task_name}' created for event '{self.selected_event.event_name}' "
+                                            f"with priority '{priority}' and assigned team '{assigned_team}'.")
+
+        self.task_name_entry.delete(0, tk.END)
+        self.priority_var.set("Medium")
+        self.assigned_team_var.set("Marketing")
 
 
 if __name__ == "__main__":

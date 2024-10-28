@@ -72,12 +72,15 @@ class EventRequest:
 """ --------TASK CLASS --------"""
 
 class Task:
-    def __init__(self, task_name, priority, assigned_team, created_by):
+    def __init__(event, self, task_name, priority, assigned_team, created_by):
+        self.event = event
         self.task_name = task_name
         self.priority = priority
         self.assigned_team = assigned_team
         self.status = "Assigned"
         self.created_by = created_by
+
+
 
 
         

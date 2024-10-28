@@ -11,6 +11,7 @@ Iteration 2 functionality:
     scs_user, pass456
     fm_user, pass789
     am_user, pass321
+    pm_user, pass654
 
     all users can access their views. 
     Events can be added and stored in json file events.json.

@@ -107,6 +107,9 @@ class EventManager:
         """Returns a list of events that have been approved by SCS but not yet commented by financial manager."""
         return [event for event in self.events if event.status == "Pending Financial Assessment"]
 
+    def get_rejected_events(self):
+        return [event for event in self.events if event.status == "Rejected"] # no matter when event is rejected it has the same status
+
     """ ------------  FINANCIAL ASSESSMENT VIEW ------------   """
 
     def get_pending_events_for_fin_com(self):
