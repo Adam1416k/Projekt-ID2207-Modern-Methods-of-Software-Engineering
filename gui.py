@@ -16,6 +16,31 @@ class EventOrganizerApp:
         self.current_user = None
         self.create_login_screen()
 
+    """ ---------FIND AN EVENT BY SELECTING IT IN A VIEW--------- """
+
+    def find_event_by_info(self, event_info, status):
+
+        # Retrieve the correct list of events based on status
+        if status == "Pending First Approval":
+            events = self.event_manager.get_pending_events_for_first_approval()
+        elif status == "Pending Financial Assessment":
+            events = self.event_manager.get_pending_events_for_fin_com()
+        elif status == "Pending Final Approval":
+            events = self.event_manager.get_assessed_events_for_fin_com()
+        elif status == "Approved":
+            events = self.event_manager.get_approved_events_for_final_approval()
+        else:
+            events = []
+
+        # Iterate through the events and find the one matching the event_info string
+        for event in events:
+            event_display_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}"
+            if event_display_info in event_info:
+                return event
+
+        return None  # Return None if no matching event is found
+
+
     """----------  LOGIN + LOGOUT STORY ---------- """
 
     def create_login_screen(self):
@@ -222,24 +247,6 @@ class EventOrganizerApp:
         
         if event:
             self.first_approval(event, approved=False)
-
-    def find_event_by_info(self, event_info, status):
-        """
-        Finds the EventRequest object based on displayed event information.
-        
-        Args:
-        - event_info (str): The string info displayed in the listbox.
-        - status (str): Indicates the status to filter events.
-        
-        Returns:
-        - EventRequest: The matching event object.
-        """
-        events = (self.event_manager.get_pending_events_for_first_approval() if status == "Pending First Approval" 
-                  else self.event_manager.get_approved_events_for_final_approval())
-        for event in events:
-            if f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}" in event_info:
-                return event
-        return None
 
     def first_approval(self, event, approved):
         """
