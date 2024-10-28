@@ -4,7 +4,7 @@ from tkinter import messagebox
 from tkinter import * # not working, why?? 
 from tkinter import ttk 
 from datetime import datetime, date, time
-from models import EventRequest, Role
+from models import EventRequest, Role, Task
 from managers.event_manager import EventManager
 from auth import login, has_access
 
@@ -472,61 +472,57 @@ class EventOrganizerApp:
 
     """ ---------- TASK CREATION (PRODUCTION MANAGER VIEW) ---------- """
 
+
     def create_task_screen(self):
-        """Creates the task screen where a task can be created for an approved event."""
         self.clear_screen()
 
-        # Label for selecting an approved event
         tk.Label(self.root, text="Select an Approved Event").pack()
 
-        # Retrieve approved events for dropdown
+        # Retrieve approved events and create a dictionary for mapping
         approved_events = self.event_manager.get_approved_events_for_final_approval()
-        self.selected_event_var = tk.StringVar(self.root)
-        
-        # Check if there are approved events
-        if approved_events:
-            approved_event_names = [f"{event.event_name} - {event.date}" for event in approved_events]
-            self.selected_event_var.set(approved_event_names[0])  # Default to the first approved event
-        else:
-            approved_event_names = ["No Approved Events Available"]
-            self.selected_event_var.set(approved_event_names[0])
+        self.approved_events_map = {f"{event.event_name} - {event.date}": event for event in approved_events}
 
-        # Event selection dropdown
-        self.event_dropdown = tk.OptionMenu(self.root, self.selected_event_var, *approved_event_names)
+        # Create a dropdown with approved events
+        self.selected_event_var = tk.StringVar(self.root)
+        if approved_events:
+            first_event_name = list(self.approved_events_map.keys())[0]
+            self.selected_event_var.set(first_event_name)
+            self.selected_event = self.approved_events_map[first_event_name]  # Set the default selected event
+        else:
+            self.selected_event_var.set("No Approved Events Available")
+            self.selected_event = None
+
+        self.event_dropdown = tk.OptionMenu(
+            self.root, self.selected_event_var, *self.approved_events_map.keys(), command=self.update_selected_event
+        )
         self.event_dropdown.pack()
 
-        # Label and entry for task name
+        # Task name entry
         tk.Label(self.root, text="Task Name").pack()
         self.task_name_entry = tk.Entry(self.root)
         self.task_name_entry.pack()
 
-        # Label for task priority
+        # Task priority dropdown
         tk.Label(self.root, text="Select Task Priority").pack()
-
-        # Create a StringVar to store the selected priority
         self.priority_var = tk.StringVar(self.root)
-        self.priority_var.set("Medium")  # Set default priority to "Medium"
-
-        # Priority selection dropdown with "High", "Medium", and "Low"
+        self.priority_var.set("Medium")
         self.priority_dropdown = tk.OptionMenu(self.root, self.priority_var, "High", "Medium", "Low")
         self.priority_dropdown.pack()
 
-        # Label for selecting an assigned team
+        # Assigned team dropdown
         tk.Label(self.root, text="Select Assigned Team").pack()
-
-        # Define team options and create StringVar for selection
         team_options = ["Marketing", "Production", "Support", "Sales"]
         self.assigned_team_var = tk.StringVar(self.root)
-        self.assigned_team_var.set(team_options[0])  # Default to the first team
-
-        # Team selection dropdown
-        self.team_dropdown = tk.OptionMenu(self.root, self.assigned_team_var, *team_options)
+        self.assigned_team_var.set(team_options[0])
+        self.team_dropdown = tk.OptionMenu(self.root, self.assigned_team_var, *team_options) # TMP team options
         self.team_dropdown.pack()
 
-    # Button to confirm task creation
+        # Create Task button
         tk.Button(self.root, text="Create Task", command=self.create_task_for_event).pack(pady=10)
 
-        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
+    def update_selected_event(self, selected_event_name):
+        """Updates self.selected_event based on the dropdown selection."""
+        self.selected_event = self.approved_events_map.get(selected_event_name)
 
 
     def create_task_for_event(self):
