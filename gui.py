@@ -1,7 +1,8 @@
-from models import User, Role, EventRequest, Task
+from models import User, Role, EventRequest, Task, RecruitmentRequest
 from auth import login, has_access
 from managers.event_manager import EventManager
 from managers.task_manager import TaskManager
+from managers.recruitment_manager import RecruitmentManager
 import tkinter as tk
 from tkinter import messagebox, ttk
 from datetime import datetime
@@ -12,7 +13,8 @@ class EventOrganizerApp:
         self.root.title("Event Organizer")
         self.root.geometry("800x600")
         self.event_manager = EventManager()
-        self.task_manager = TaskManager()  # Instantiate TaskManager
+        self.task_manager = TaskManager()
+        self.recruitment_manager = RecruitmentManager()
         self.current_user = None
         self.create_login_screen()
 
@@ -75,6 +77,7 @@ class EventOrganizerApp:
             self.create_final_approval_screen()
         elif has_access(self.current_user, Role.PRODUCTION_MANAGER):
             self.create_task_screen()
+            tk.Button(self.root, text="Submit Recruitment Request", command=self.create_recruitment_request_screen).pack(pady=10)
         elif has_access(self.current_user, Role.TEAM_MEMBER):
             self.create_task_review_screen()
         else:
@@ -637,6 +640,69 @@ class EventOrganizerApp:
             for task in reviewed_tasks:
                 task_info = f"Task: {task.task_name}, Event: {task.event}, Priority: {task.priority}, Comments: {', '.join(task.comments)}"
                 self.reviewed_tasks_listbox.insert(tk.END, task_info)
+
+    """ ---------- RECRUITMENT REQUEST (PM MANAGER) ---------- """
+
+    def create_recruitment_request_screen(self):
+        self.clear_screen()
+        tk.Label(self.root, text="Recruitment Request Form").pack(pady=10)
+
+        # Position Entry
+        tk.Label(self.root, text="Position").pack()
+        self.position_entry = tk.Entry(self.root)
+        self.position_entry.pack()
+
+        # Number of Hires Entry
+        tk.Label(self.root, text="Number of Hires").pack()
+        self.num_hires_entry = tk.Entry(self.root)
+        self.num_hires_entry.pack()
+
+        # Urgency Dropdown
+        tk.Label(self.root, text="Urgency").pack()
+        self.urgency_var = tk.StringVar(self.root)
+        self.urgency_var.set("Medium")
+        tk.OptionMenu(self.root, self.urgency_var, "High", "Medium", "Low").pack()
+
+        # Justification Entry
+        tk.Label(self.root, text="Justification").pack()
+        self.justification_entry = tk.Entry(self.root, width=50)
+        self.justification_entry.pack()
+
+        # Submit Button
+        tk.Button(self.root, text="Submit Recruitment Request", command=self.submit_recruitment_request).pack(pady=20)
+
+        # Logout Button
+        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
+
+    def submit_recruitment_request(self):
+        position = self.position_entry.get().strip()
+        num_hires = self.num_hires_entry.get().strip()
+        urgency = self.urgency_var.get()
+        justification = self.justification_entry.get().strip()
+
+        # Validation
+        if not position or not num_hires.isdigit() or not justification:
+            messagebox.showerror("Invalid Input", "Please enter valid information for all fields.")
+            return
+
+        # Create a RecruitmentRequest object
+        request = RecruitmentRequest(
+            position=position,
+            num_hires=int(num_hires),
+            urgency=urgency,
+            justification=justification,
+            submitted_by=self.current_user.username
+        )
+
+        # Add request to the manager and save
+        self.recruitment_manager.add_request(request)
+        messagebox.showinfo("Request Submitted", "Your recruitment request has been submitted to HR.")
+        
+        # Clear form inputs
+        self.position_entry.delete(0, tk.END)
+        self.num_hires_entry.delete(0, tk.END)
+        self.justification_entry.delete(0, tk.END)
+        self.urgency_var.set("Medium")
 
 # Run the application
 if __name__ == "__main__":

@@ -26,3 +26,7 @@ Iteration 3 functionality:
     am_user, am
     pm_user, pm
     team_user, team
+
+    Sub-teams can review and comment on assigned tasks.
+    Production managers can view tasks reviwed by sub-teams.
+    SM and PM can submit recruitment requests to HR.

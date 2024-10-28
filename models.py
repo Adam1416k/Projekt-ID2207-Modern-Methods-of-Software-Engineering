@@ -1,4 +1,3 @@
-
 class Role:
     CUSTOMER_SERVICE = "CustomerService"
     SENIOR_CUSTOMER_SERVICE = "SeniorCustomerService"
@@ -68,8 +67,6 @@ class EventRequest:
                 self.status = "Rejected"
                 self.comments["final_approval"] = f"Rejected by {reviewer}"
 
-
-
     """ --------TASK CLASS --------"""
 
 class Task:
@@ -81,3 +78,35 @@ class Task:
         self.status = status
         self.created_by = created_by
         self.comments = comments if comments else []
+
+    """ --------RECRUITMENT CLASS --------"""
+
+class RecruitmentRequest:
+    def __init__(self, position, num_hires, urgency, justification, submitted_by, status="Pending"):
+        self.position = position
+        self.num_hires = num_hires
+        self.urgency = urgency
+        self.justification = justification
+        self.submitted_by = submitted_by
+        self.status = status
+
+    def to_dict(self):
+        return {
+            "position": self.position,
+            "num_hires": self.num_hires,
+            "urgency": self.urgency,
+            "justification": self.justification,
+            "submitted_by": self.submitted_by,
+            "status": self.status
+        }
+
+    @staticmethod
+    def from_dict(data):
+        return RecruitmentRequest(
+            position=data["position"],
+            num_hires=data["num_hires"],
+            urgency=data["urgency"],
+            justification=data["justification"],
+            submitted_by=data["submitted_by"],
+            status=data["status"]
+        )
