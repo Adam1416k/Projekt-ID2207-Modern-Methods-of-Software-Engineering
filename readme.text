@@ -1,19 +1,28 @@
 Iteration 1 functionality:
     Users:
-    cs_user, pass123
-    scs_user, pass456
+    cs_user, cs
+    scs_user, scs
 
     cs_user only has access to the register event function.
 
 Iteration 2 functionality: 
     users: 
-    cs_user, pass123
-    scs_user, pass456
-    fm_user, pass789
-    am_user, pass321
-    pm_user, pass654
+    cs_user, cs
+    scs_user, scs
+    fm_user, fm
+    am_user, am
+    pm_user, pm
 
     all users can access their views. 
     Events can be added and stored in json file events.json.
     Events get status update after each step in approval process.
     Tasks can be created and saved in tasks.json
+
+Iteration 3 functionality: 
+    users: 
+    cs_user, cs
+    scs_user, scs
+    fm_user, fm
+    am_user, am
+    pm_user, pm
+    team_user, team

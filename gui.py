@@ -75,6 +75,8 @@ class EventOrganizerApp:
             self.create_final_approval_screen()
         elif has_access(self.current_user, Role.PRODUCTION_MANAGER):
             self.create_task_screen()
+        elif has_access(self.current_user, Role.TEAM_MEMBER):
+            self.create_task_review_screen()
         else:
             messagebox.showerror("Access Denied", "You do not have access to any screens.")
 
@@ -513,6 +515,80 @@ class EventOrganizerApp:
         self.task_name_entry.delete(0, tk.END)
         self.priority_var.set("Medium")
         self.assigned_team_var.set("Marketing")
+
+    """ ---------- TASK REVIEW (SUB TEAM VIEW) ---------- """
+
+    def create_task_review_screen(self):
+        self.clear_screen()
+        tk.Label(self.root, text="Assigned Tasks for Review").pack()
+
+        # Listbox for displaying assigned tasks
+        self.task_listbox = tk.Listbox(self.root, width=80, height=10)
+        self.task_listbox.pack()
+        self.load_assigned_tasks()  # Load tasks for the logged-in team
+
+        # Text entry for review comment
+        tk.Label(self.root, text="Add Review Comment").pack()
+        self.review_comment_entry = tk.Entry(self.root, width=80)
+        self.review_comment_entry.pack()
+
+        # Button to submit the review comment
+        tk.Button(self.root, text="Submit Comment", command=self.add_task_comment).pack(pady=10)
+
+        # Logout Button
+        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
+
+    def load_assigned_tasks(self):
+        # Clear existing items in the listbox
+        self.task_listbox.delete(0, tk.END)
+
+        # Retrieve tasks assigned to the current team
+        assigned_team = "Marketing"  # Assume the current team is Marketing; adjust based on team logic
+        assigned_tasks = [task for task in self.task_manager.tasks if task.assigned_team == assigned_team]
+
+        if not assigned_tasks:
+            self.task_listbox.insert(tk.END, "No tasks assigned to your team.")
+        else:
+            for task in assigned_tasks:
+                task_info = f"Task: {task.task_name}, Event: {task.event}, Priority: {task.priority}, Status: {task.status}"
+                self.task_listbox.insert(tk.END, task_info)
+
+    def add_task_comment(self):
+        selected_index = self.task_listbox.curselection()
+        if not selected_index:
+            messagebox.showwarning("Selection Error", "No task selected for comment.")
+            return
+
+        # Get selected task details
+        selected_task_info = self.task_listbox.get(selected_index)
+        task_name = selected_task_info.split(",")[0].split(":")[1].strip()  # Extract task name from display
+
+        # Find the task object
+        task = next((task for task in self.task_manager.tasks if task.task_name == task_name), None)
+        if not task:
+            messagebox.showerror("Task Not Found", "The selected task could not be found.")
+            return
+
+        # Get comment from entry box
+        comment = self.review_comment_entry.get().strip()
+        if not comment:
+            messagebox.showwarning("Empty Comment", "Please enter a review comment before submitting.")
+            return
+
+        # Append comment to the task
+        task.status = "Reviewed"  # Update status to reviewed
+        if hasattr(task, "comments"):
+            task.comments.append(comment)  # Assuming Task has a comments attribute as a list
+        else:
+            task.comments = [comment]
+
+        # Save tasks to JSON
+        self.task_manager.save_tasks()
+
+        # Confirm submission
+        messagebox.showinfo("Comment Added", f"Review comment added to task '{task.task_name}'.")
+        self.review_comment_entry.delete(0, tk.END)  # Clear the comment entry
+        self.load_assigned_tasks()  # Refresh the task list
 
 # Run the application
 if __name__ == "__main__":
