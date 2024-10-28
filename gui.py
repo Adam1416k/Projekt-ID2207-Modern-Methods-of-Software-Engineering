@@ -12,6 +12,7 @@ class EventOrganizerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Event Organizer")
+        self.root.geometry("800x600")
         self.event_manager = EventManager()
         self.current_user = None
         self.create_login_screen()
