@@ -52,6 +52,6 @@ class TaskManager:
             task_name=data["task_name"],
             priority=data["priority"],
             assigned_team=data["assigned_team"],
-            status=data["status"],
+            status=data["status"],          # Ensure compatibility with Task constructor
             created_by=data["created_by"]
         )

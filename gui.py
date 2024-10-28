@@ -1,12 +1,10 @@
-# gui.py
-import tkinter as tk
-from tkinter import messagebox
-from tkinter import * # not working, why?? 
-from tkinter import ttk 
-from datetime import datetime, date, time
-from models import EventRequest, Role, Task
-from managers.event_manager import EventManager
+from models import User, Role, EventRequest, Task
 from auth import login, has_access
+from managers.event_manager import EventManager
+from managers.task_manager import TaskManager
+import tkinter as tk
+from tkinter import messagebox, ttk
+from datetime import datetime
 
 class EventOrganizerApp:
     def __init__(self, root):
@@ -14,6 +12,7 @@ class EventOrganizerApp:
         self.root.title("Event Organizer")
         self.root.geometry("800x600")
         self.event_manager = EventManager()
+        self.task_manager = TaskManager()  # Instantiate TaskManager
         self.current_user = None
         self.create_login_screen()
 
@@ -46,21 +45,17 @@ class EventOrganizerApp:
 
     def create_login_screen(self):
         self.clear_screen()
-        
         tk.Label(self.root, text="Username").pack()
         self.username_entry = tk.Entry(self.root)
         self.username_entry.pack()
-
         tk.Label(self.root, text="Password").pack()
         self.password_entry = tk.Entry(self.root, show="*")
         self.password_entry.pack()
-
         tk.Button(self.root, text="Login", command=self.handle_login).pack()
 
     def handle_login(self):
         username = self.username_entry.get()
         password = self.password_entry.get()
-        
         user = login(username, password)
         if user:
             self.current_user = user
@@ -88,9 +83,6 @@ class EventOrganizerApp:
         self.current_user = None
         messagebox.showinfo("Logout", "You have been logged out.")
         self.create_login_screen()  # Redirect to login screen
-
-
-
 
     """ ---------- EVENT CREATION STORY (CS VIEW) ---------- """
 
@@ -148,35 +140,22 @@ class EventOrganizerApp:
             return
         
         messagebox.showinfo("Event Registered", f"Event '{event_name}' has been successfully registered.")
-    
-    
 
     """ ---------- FIRST APPROVAL STORY (SCS VIEW)---------- """
 
     def create_first_approval_screen(self):
-        """
-        Creates the tabbed interface for Senior Customer Service (SCS).
-        Includes tabs for:
-        1. Events Needing First Approval
-        2. All Final Approved Events
-        """
         self.clear_screen()
-
-        # Create Notebook for tabs
         notebook = ttk.Notebook(self.root)
         notebook.pack(expand=True, fill='both')
 
-        # First tab: Events Needing First Approval
+        # Pending First Approval Tab
         first_approval_tab = tk.Frame(notebook)
         notebook.add(first_approval_tab, text="Pending First Approval")
-
         tk.Label(first_approval_tab, text="Events Needing First Approval").pack()
 
         self.first_approval_pending_events_listbox = tk.Listbox(first_approval_tab, width=80, height=10)
         self.first_approval_pending_events_listbox.pack()
-
         pending_events = self.event_manager.get_pending_events_for_first_approval()
-        
         if not pending_events:
             self.first_approval_pending_events_listbox.insert(tk.END, "No events pending approval.")
         else:
@@ -184,36 +163,18 @@ class EventOrganizerApp:
                 event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}"
                 self.first_approval_pending_events_listbox.insert(tk.END, event_info)
 
+        # Add approve/reject buttons
         tk.Button(first_approval_tab, text="Approve Selected Event", command=self.approve_selected_event).pack()
         tk.Button(first_approval_tab, text="Reject Selected Event", command=self.reject_selected_event).pack()
 
-            # Section for events pending financial comment
-        Label(first_approval_tab, text="Events Awaiting Financial Comment").pack()
-
-        self.pending_financial_comment_listbox = Listbox(first_approval_tab, width=80, height=10)
-        self.pending_financial_comment_listbox.pack()
-
-        approved_for_financial = self.event_manager.get_approved_events_for_first_approval()
-        
-        if not approved_for_financial:
-            self.pending_financial_comment_listbox.insert(END, "No events awaiting financial comment.")
-        else:
-            for event in approved_for_financial:
-                event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}, Status: {event.status}"
-                self.pending_financial_comment_listbox.insert(END, event_info)
-
-
-        # Second tab: All Final Approved Events
+        # Approved Events Tab
         final_approved_tab = tk.Frame(notebook)
         notebook.add(final_approved_tab, text="Final Approved Events")
-
         tk.Label(final_approved_tab, text="All Final Approved Events").pack()
 
         self.final_approved_events_listbox = tk.Listbox(final_approved_tab, width=80, height=10)
         self.final_approved_events_listbox.pack()
-
         final_approved_events = self.event_manager.get_approved_events_for_final_approval()
-        
         if not final_approved_events:
             self.final_approved_events_listbox.insert(tk.END, "No final approved events.")
         else:
@@ -221,26 +182,20 @@ class EventOrganizerApp:
                 event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}, Status: {event.status}"
                 self.final_approved_events_listbox.insert(tk.END, event_info)
 
-        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
-
-        
-        # Third tab: All Rejected Events
+        # Rejected Events Tab
         rejected_tab = tk.Frame(notebook)
         notebook.add(rejected_tab, text="Rejected Events")
-
         tk.Label(rejected_tab, text="All Rejected Events").pack()
 
         self.rejected_events_listbox = tk.Listbox(rejected_tab, width=80, height=10)
         self.rejected_events_listbox.pack()
-
         rejected_events = self.event_manager.get_rejected_events()
-        
         if not rejected_events:
             self.rejected_events_listbox.insert(tk.END, "No rejected events.")
         else:
             for event in rejected_events:
                 event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}, Status: {event.status}"
-                self.rejected_events.insert(tk.END, event_info)
+                self.rejected_events_listbox.insert(tk.END, event_info)
 
         tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
 
@@ -473,94 +428,93 @@ class EventOrganizerApp:
 
     """ ---------- TASK CREATION (PRODUCTION MANAGER VIEW) ---------- """
 
-
     def create_task_screen(self):
         self.clear_screen()
-
         tk.Label(self.root, text="Select an Approved Event").pack()
 
-        # Retrieve approved events and create a dictionary for mapping
+        # Load approved events
         approved_events = self.event_manager.get_approved_events_for_final_approval()
         self.approved_events_map = {f"{event.event_name} - {event.date}": event for event in approved_events}
 
-        # Create a dropdown with approved events
+        # Initialize StringVar and handle case where no events are available
         self.selected_event_var = tk.StringVar(self.root)
         if approved_events:
             first_event_name = list(self.approved_events_map.keys())[0]
             self.selected_event_var.set(first_event_name)
-            self.selected_event = self.approved_events_map[first_event_name]  # Set the default selected event
+            self.selected_event = self.approved_events_map[first_event_name]
+            event_options = list(self.approved_events_map.keys())
         else:
             self.selected_event_var.set("No Approved Events Available")
             self.selected_event = None
+            event_options = ["No Approved Events Available"]
 
+        # Create event dropdown
         self.event_dropdown = tk.OptionMenu(
-            self.root, self.selected_event_var, *self.approved_events_map.keys(), command=self.update_selected_event
+            self.root, self.selected_event_var, *event_options, command=self.update_selected_event
         )
         self.event_dropdown.pack()
 
-        # Task name entry
+        # Task Name Entry
         tk.Label(self.root, text="Task Name").pack()
         self.task_name_entry = tk.Entry(self.root)
         self.task_name_entry.pack()
 
-        # Task priority dropdown
+        # Task Priority Dropdown
         tk.Label(self.root, text="Select Task Priority").pack()
         self.priority_var = tk.StringVar(self.root)
         self.priority_var.set("Medium")
         self.priority_dropdown = tk.OptionMenu(self.root, self.priority_var, "High", "Medium", "Low")
         self.priority_dropdown.pack()
 
-        # Assigned team dropdown
+        # Assigned Team Dropdown
         tk.Label(self.root, text="Select Assigned Team").pack()
         team_options = ["Marketing", "Production", "Support", "Sales"]
         self.assigned_team_var = tk.StringVar(self.root)
         self.assigned_team_var.set(team_options[0])
-        self.team_dropdown = tk.OptionMenu(self.root, self.assigned_team_var, *team_options) # TMP team options
+        self.team_dropdown = tk.OptionMenu(self.root, self.assigned_team_var, *team_options)
         self.team_dropdown.pack()
 
-        # Create Task button
+        # Create Task Button
         tk.Button(self.root, text="Create Task", command=self.create_task_for_event).pack(pady=10)
 
+        # Logout Button
+        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
+
     def update_selected_event(self, selected_event_name):
-        """Updates self.selected_event based on the dropdown selection."""
         self.selected_event = self.approved_events_map.get(selected_event_name)
 
-
     def create_task_for_event(self):
-        if not hasattr(self, 'selected_event') or self.selected_event is None:
+        if not self.selected_event:
             messagebox.showwarning("No Event Selected", "Please select an approved event to create a task.")
             return
 
-        # Retrieve the task name, priority level, and assigned team
+        # Gather task information
         task_name = self.task_name_entry.get().strip()
         if not task_name:
             messagebox.showwarning("Empty Task Name", "Please enter a name for the task.")
             return
-        
         priority = self.priority_var.get()
         assigned_team = self.assigned_team_var.get()
         created_by = self.current_user.username
 
-        # Create the Task object with the required attributes
+        # Create and add the task
         task = Task(
-            event=self.selected_event.event_name,  # Use the name of the selected event as the event reference ?? OBS OBS kolla om detta är bästa sätt
+            event=self.selected_event.event_name,
             task_name=task_name,
             priority=priority,
             assigned_team=assigned_team,
             created_by=created_by
         )
-
         self.task_manager.add_task(task)
-        
-        # Show a confirmation message
+
+        # Confirmation and reset input
         messagebox.showinfo("Task Created", f"Task '{task_name}' created for event '{self.selected_event.event_name}' "
                                             f"with priority '{priority}' and assigned team '{assigned_team}'.")
-
         self.task_name_entry.delete(0, tk.END)
         self.priority_var.set("Medium")
         self.assigned_team_var.set("Marketing")
 
-
+# Run the application
 if __name__ == "__main__":
     root = tk.Tk()
     app = EventOrganizerApp(root)

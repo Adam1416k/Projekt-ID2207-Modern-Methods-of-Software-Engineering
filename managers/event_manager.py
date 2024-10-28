@@ -91,9 +91,8 @@ class EventManager:
             else:
                 event.status = "Rejected"
                 event.comments["final_approval"] = f"Rejected by {reviewer}"
-        return event     
-
-
+            self.save_events()  # Save changes immediately
+        return event
 
     """ ------------ EVENT LISTS FOR APPROVAL VIEWS ------------  
 
