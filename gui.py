@@ -479,6 +479,12 @@ class EventOrganizerApp:
         # Create Task Button
         tk.Button(self.root, text="Create Task", command=self.create_task_for_event).pack(pady=10)
 
+        # Section for Reviewed Tasks
+        tk.Label(self.root, text="Reviewed Tasks").pack(pady=10)
+        self.reviewed_tasks_listbox = tk.Listbox(self.root, width=80, height=10)
+        self.reviewed_tasks_listbox.pack()
+        self.load_reviewed_tasks()  # Load tasks with "Reviewed" status
+
         # Logout Button
         tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
 
@@ -533,10 +539,35 @@ class EventOrganizerApp:
         self.review_comment_entry.pack()
 
         # Button to submit the review comment
-        tk.Button(self.root, text="Submit Comment", command=self.add_task_comment).pack(pady=10)
+        self.submit_comment_button = tk.Button(self.root, text="Submit Comment", command=self.add_task_comment)
+        self.submit_comment_button.pack(pady=10)
+
+        # Bind selection to check if task can be commented
+        self.task_listbox.bind("<<ListboxSelect>>", self.check_task_review_status)
 
         # Logout Button
         tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
+
+    def check_task_review_status(self, event):
+        # Disable comment entry if the selected task is already reviewed
+        selected_index = self.task_listbox.curselection()
+        if not selected_index:
+            return
+
+        # Get selected task details
+        selected_task_info = self.task_listbox.get(selected_index)
+        task_name = selected_task_info.split(",")[0].split(":")[1].strip()
+
+        # Find the task object
+        task = next((task for task in self.task_manager.tasks if task.task_name == task_name), None)
+
+        # Disable comment input if already reviewed
+        if task and task.status == "Reviewed":
+            self.review_comment_entry.config(state="disabled")
+            self.submit_comment_button.config(state="disabled")
+        else:
+            self.review_comment_entry.config(state="normal")
+            self.submit_comment_button.config(state="normal")
 
     def load_assigned_tasks(self):
         # Clear existing items in the listbox
@@ -550,7 +581,8 @@ class EventOrganizerApp:
             self.task_listbox.insert(tk.END, "No tasks assigned to your team.")
         else:
             for task in assigned_tasks:
-                task_info = f"Task: {task.task_name}, Event: {task.event}, Priority: {task.priority}, Status: {task.status}"
+                status_text = "(Reviewed)" if task.status == "Reviewed" else "(Pending Review)"
+                task_info = f"Task: {task.task_name}, Event: {task.event}, Priority: {task.priority} {status_text}"
                 self.task_listbox.insert(tk.END, task_info)
 
     def add_task_comment(self):
@@ -569,26 +601,42 @@ class EventOrganizerApp:
             messagebox.showerror("Task Not Found", "The selected task could not be found.")
             return
 
+        # Check if the task has already been reviewed
+        if task.status == "Reviewed":
+            messagebox.showinfo("Task Already Reviewed", f"Task '{task.task_name}' has already been reviewed.")
+            return
+
         # Get comment from entry box
         comment = self.review_comment_entry.get().strip()
         if not comment:
             messagebox.showwarning("Empty Comment", "Please enter a review comment before submitting.")
             return
 
-        # Append comment to the task
+        # Append comment to the task and mark as reviewed
         task.status = "Reviewed"  # Update status to reviewed
-        if hasattr(task, "comments"):
-            task.comments.append(comment)  # Assuming Task has a comments attribute as a list
-        else:
-            task.comments = [comment]
+        task.comments.append(comment)
 
         # Save tasks to JSON
         self.task_manager.save_tasks()
 
-        # Confirm submission
+        # Confirm submission and clear input
         messagebox.showinfo("Comment Added", f"Review comment added to task '{task.task_name}'.")
         self.review_comment_entry.delete(0, tk.END)  # Clear the comment entry
         self.load_assigned_tasks()  # Refresh the task list
+
+    def load_reviewed_tasks(self):
+        # Clear existing items in the listbox
+        self.reviewed_tasks_listbox.delete(0, tk.END)
+
+        # Filter for tasks with status "Reviewed"
+        reviewed_tasks = [task for task in self.task_manager.tasks if task.status == "Reviewed"]
+
+        if not reviewed_tasks:
+            self.reviewed_tasks_listbox.insert(tk.END, "No reviewed tasks available.")
+        else:
+            for task in reviewed_tasks:
+                task_info = f"Task: {task.task_name}, Event: {task.event}, Priority: {task.priority}, Comments: {', '.join(task.comments)}"
+                self.reviewed_tasks_listbox.insert(tk.END, task_info)
 
 # Run the application
 if __name__ == "__main__":

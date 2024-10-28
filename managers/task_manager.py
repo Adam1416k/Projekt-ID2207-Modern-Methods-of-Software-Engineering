@@ -42,7 +42,8 @@ class TaskManager:
             "priority": task.priority,
             "assigned_team": task.assigned_team,
             "status": task.status,
-            "created_by": task.created_by
+            "created_by": task.created_by,
+            "comments": task.comments  # Include comments in serialization
         }
 
     def deserialize_task(self, data):
@@ -52,6 +53,7 @@ class TaskManager:
             task_name=data["task_name"],
             priority=data["priority"],
             assigned_team=data["assigned_team"],
-            status=data["status"],          # Ensure compatibility with Task constructor
-            created_by=data["created_by"]
+            status=data["status"],
+            created_by=data["created_by"],
+            comments=data.get("comments", [])  # Load comments if present
         )
