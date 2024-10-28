@@ -71,8 +71,14 @@ class EventManager:
     def financial_comment(self, event, approved, reviewer):
         if event.status == "Pending Financial Assessment":
             event.status = "Pending Final Approval"
-            event.comments["financial_comment"] = f"Commented by {reviewer}"
+            event.comments["financial"] = f"Commented by {reviewer}: {comment}"
         return event
+
+    def add_financial_comment(self, event, comment, reviewer):
+        """Adds a financial comment to an event and updates its status."""
+        event.financial_comment(comment, reviewer)
+        print(f"Updated event status: {event.status}, comment: {event.comments['financial']}")  # Debug print
+        self.save_events()  # Save changes to JSON
 
 
     """ ------------ FINAL APPROVAL OF EVENT that has been given comment by financial manager------------   """

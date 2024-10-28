@@ -17,8 +17,11 @@ Iteration 2 functionality:
     Events get status update after each step in approval process.
 
     known bugs: 
+    HAS BEEN FIXED: 
     - json file is not being updated when adding events. 
-    - json file needs to be updated in approval process for approval and reject actions by scs (for testing purpose waiting with this)
-    - json file needs to be updated in comment process for financial comment actions by fm (now is just saying "no comment avalible")
+    - json file needs to be updated in approval process for approval and reject actions by scs (for testing purpose waiting with this) 
+
+    WAITING TO BE FIXED: 
+    - json file needs to be updated in comment process for financial comment actions by fm (now is just saying "no comment avalible") 
 
     

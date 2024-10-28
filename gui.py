@@ -1,7 +1,8 @@
 # gui.py
 import tkinter as tk
 from tkinter import messagebox
-from tkinter import *
+from tkinter import * # not working, why?? 
+from tkinter import ttk 
 from datetime import datetime, date, time
 from models import EventRequest, Role
 from managers.event_manager import EventManager
@@ -126,19 +127,26 @@ class EventOrganizerApp:
 
     def create_first_approval_screen(self):
         """
-        Creates the first approval screen for Senior Customer Service (SCS).
-        Displays pending approval events with options to approve and lists already approved events.
+        Creates the tabbed interface for Senior Customer Service (SCS).
+        Includes tabs for:
+        1. Events Needing First Approval
+        2. All Final Approved Events
         """
         self.clear_screen()
 
-        # Label for Pending Approval
-        tk.Label(self.root, text="Events Needing Approval").pack()
+        # Create Notebook for tabs
+        notebook = ttk.Notebook(self.root)
+        notebook.pack(expand=True, fill='both')
 
-        # Listbox for Pending Events
-        self.first_approval_pending_events_listbox = tk.Listbox(self.root, width=80, height=10)
+        # First tab: Events Needing First Approval
+        first_approval_tab = tk.Frame(notebook)
+        notebook.add(first_approval_tab, text="Pending First Approval")
+
+        tk.Label(first_approval_tab, text="Events Needing First Approval").pack()
+
+        self.first_approval_pending_events_listbox = tk.Listbox(first_approval_tab, width=80, height=10)
         self.first_approval_pending_events_listbox.pack()
 
-        # Load pending events into the listbox
         pending_events = self.event_manager.get_pending_events_for_first_approval()
         
         if not pending_events:
@@ -148,33 +156,44 @@ class EventOrganizerApp:
                 event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}"
                 self.first_approval_pending_events_listbox.insert(tk.END, event_info)
 
-        # Button to approve/reject selected event
-        tk.Button(self.root, text="Approve Selected Event", command=self.approve_selected_event).pack()
-        tk.Button(self.root, text="Reject Selected Event", command=self.reject_selected_event).pack()
+        tk.Button(first_approval_tab, text="Approve Selected Event", command=self.approve_selected_event).pack()
+        tk.Button(first_approval_tab, text="Reject Selected Event", command=self.reject_selected_event).pack()
 
-        # Divider between pending and approved sections
-        tk.Label(self.root, text="------------------------").pack()
+            # Section for events pending financial comment
+        Label(first_approval_tab, text="Events Awaiting Financial Comment").pack()
 
-        # Label for Approved Events
-        tk.Label(self.root, text="Approved Events").pack()
+        self.pending_financial_comment_listbox = Listbox(first_approval_tab, width=80, height=10)
+        self.pending_financial_comment_listbox.pack()
 
-        # Listbox for Approved Events
-        self.approved_events_listbox = tk.Listbox(self.root, width=80, height=10)
-        self.approved_events_listbox.pack()
-
-        # Load approved events into the listbox
-        approved_events = self.event_manager.get_approved_events_for_first_approval()
+        approved_for_financial = self.event_manager.get_approved_events_for_first_approval()
         
-        if not approved_events:
-            self.approved_events_listbox.insert(tk.END, "No approved events.")
+        if not approved_for_financial:
+            self.pending_financial_comment_listbox.insert(END, "No events awaiting financial comment.")
         else:
-            for event in approved_events:
+            for event in approved_for_financial:
                 event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}, Status: {event.status}"
-                self.approved_events_listbox.insert(tk.END, event_info)
+                self.pending_financial_comment_listbox.insert(END, event_info)
 
+
+        # Second tab: All Final Approved Events
+        final_approved_tab = tk.Frame(notebook)
+        notebook.add(final_approved_tab, text="Final Approved Events")
+
+        tk.Label(final_approved_tab, text="All Final Approved Events").pack()
+
+        self.final_approved_events_listbox = tk.Listbox(final_approved_tab, width=80, height=10)
+        self.final_approved_events_listbox.pack()
+
+        final_approved_events = self.event_manager.get_approved_events_for_final_approval()
         
-        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
+        if not final_approved_events:
+            self.final_approved_events_listbox.insert(tk.END, "No final approved events.")
+        else:
+            for event in final_approved_events:
+                event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}, Status: {event.status}"
+                self.final_approved_events_listbox.insert(tk.END, event_info)
 
+        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
 
     def approve_selected_event(self):
         """ Approves the selected event from the pending events listbox. """
@@ -210,12 +229,13 @@ class EventOrganizerApp:
         
         Args:
         - event_info (str): The string info displayed in the listbox.
-        - status (str): Indicates if the event is "pending" or "approved".
+        - status (str): Indicates the status to filter events.
         
         Returns:
         - EventRequest: The matching event object.
         """
-        events = self.event_manager.get_pending_events_for_first_approval() if status == "Pending First Approval" else self.event_manager.get_approved_events_for_first_approval()
+        events = (self.event_manager.get_pending_events_for_first_approval() if status == "Pending First Approval" 
+                  else self.event_manager.get_approved_events_for_final_approval())
         for event in events:
             if f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}" in event_info:
                 return event
@@ -241,7 +261,6 @@ class EventOrganizerApp:
     def clear_screen(self):
         for widget in self.root.winfo_children():
             widget.destroy()
-
 
 
     """ ---------- FINANCIAL COMMENTING STORY (FINANCIAL MANAGER VIEW) ---------- """
@@ -323,9 +342,10 @@ class EventOrganizerApp:
             # Get the comment from the entry box
             comment = self.financial_comment_entry.get()
             if comment.strip():
-                event.financial_comment(comment, reviewer=self.current_user.username)
+                # Add comment to event and save
+                self.event_manager.add_financial_comment(event, comment, reviewer=self.current_user.username)
                 messagebox.showinfo("Comment Added", f"Financial comment added by {self.current_user.username}.")
-                self.create_financial_comment_screen()  # Refresh screen
+                self.create_financial_comment_screen()  # Refresh screen to move event to next stage
             else:
                 messagebox.showwarning("Empty Comment", "Please enter a financial comment before submitting.")
 
@@ -333,7 +353,7 @@ class EventOrganizerApp:
         """Displays the financial comment of the selected event from pending final approval list."""
         selected_index = self.pending_final_approval_listbox.curselection()
         if not selected_index:
-            self.selected_comment_label.config(text="")
+            self.selected_comment_label.config(text="No comment available.")
             return
 
         # Get selected event details
@@ -342,9 +362,13 @@ class EventOrganizerApp:
 
         if event:
             # Display the financial comment in the label
-            self.selected_comment_label.config(text=event.comments["financial"])
+            financial_comment = event.comments.get("financial", "No comment available.")
+            self.selected_comment_label.config(text=financial_comment)
         else:
             self.selected_comment_label.config(text="No comment available.")
+
+
+
 
     """ ---------- FINAL APPROVAL STORY (ADMINISTRATIVE MANAGER VIEW) ---------- """
 

@@ -27,7 +27,7 @@ class EventRequest:
         self.time = time
         self.location = location
         self.client_name = client_name
-        self.status = "Pending first approval"
+        self.status = "Pending First Approval"
         self.comments = {
             "first_approval": None,
             "financial": None,
