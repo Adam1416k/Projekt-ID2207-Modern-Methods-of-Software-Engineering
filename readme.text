@@ -13,7 +13,7 @@ Iteration 2 functionality:
     am_user, am
     pm_user, pm
 
-    all users can access their views. 
+    All users can access their views. 
     Events can be added and stored in json file events.json.
     Events get status update after each step in approval process.
     Tasks can be created and saved in tasks.json
@@ -30,3 +30,14 @@ Iteration 3 functionality:
     Sub-teams can review and comment on assigned tasks.
     Production managers can view tasks reviwed by sub-teams.
     SM and PM can submit recruitment requests to HR.
+
+Iteration 4 functionality: 
+    users: 
+    cs_user, cs
+    scs_user, scs
+    fm_user, fm
+    am_user, am
+    pm_user, pm
+    team_user, team
+
+    Financial managers review and approve budget-related requests.

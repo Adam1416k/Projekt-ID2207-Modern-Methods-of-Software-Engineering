@@ -72,7 +72,8 @@ class EventOrganizerApp:
         elif has_access(self.current_user, Role.SENIOR_CUSTOMER_SERVICE):
             self.create_first_approval_screen()
         elif has_access(self.current_user, Role.FINANCIAL_MANAGER):
-            self.create_financial_comment_screen()  
+            self.create_financial_comment_screen()
+            tk.Button(self.root, text="Review Recruitment Requests", command=self.create_financial_review_screen).pack(pady=10)
         elif has_access(self.current_user, Role.ADMINISTRATIVE_MANAGER):
             self.create_final_approval_screen()
         elif has_access(self.current_user, Role.PRODUCTION_MANAGER):
@@ -703,6 +704,92 @@ class EventOrganizerApp:
         self.num_hires_entry.delete(0, tk.END)
         self.justification_entry.delete(0, tk.END)
         self.urgency_var.set("Medium")
+
+    """ ---------- FINANCIAL REVIEW (FINANCIAL MANAGER) ---------- """
+
+    def create_financial_review_screen(self):
+        self.clear_screen()
+        tk.Label(self.root, text="Pending Recruitment Requests for Financial Review").pack(pady=10)
+
+        # Listbox to display pending requests
+        self.request_listbox = tk.Listbox(self.root, width=80, height=10)
+        self.request_listbox.pack()
+        self.load_pending_recruitment_requests()  # Load pending requests
+
+        # Comment entry for financial manager
+        tk.Label(self.root, text="Financial Manager Comment").pack(pady=5)
+        self.fm_comment_entry = tk.Entry(self.root, width=80)
+        self.fm_comment_entry.pack()
+
+        # Approve and Reject buttons
+        tk.Button(self.root, text="Approve Request", command=self.approve_selected_request).pack(pady=5)
+        tk.Button(self.root, text="Reject Request", command=self.reject_selected_request).pack(pady=5)
+        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
+
+    def load_pending_recruitment_requests(self):
+        self.request_listbox.delete(0, tk.END)
+        pending_requests = self.recruitment_manager.get_pending_requests_for_financial_review()
+
+        if not pending_requests:
+            self.request_listbox.insert(tk.END, "No recruitment requests pending review.")
+        else:
+            for request in pending_requests:
+                request_info = f"Position: {request.position}, Hires: {request.num_hires}, Urgency: {request.urgency}, Justification: {request.justification}"
+                self.request_listbox.insert(tk.END, request_info)
+
+    def approve_selected_request(self):
+        selected_index = self.request_listbox.curselection()
+        if not selected_index:
+            messagebox.showwarning("Selection Error", "No recruitment request selected.")
+            return
+
+        # Get selected request details
+        selected_request_info = self.request_listbox.get(selected_index)
+        position = selected_request_info.split(",")[0].split(":")[1].strip()  # Extract position
+
+        # Find the request object
+        request = next((req for req in self.recruitment_manager.requests if req.position == position), None)
+        if not request:
+            messagebox.showerror("Request Not Found", "The selected recruitment request could not be found.")
+            return
+
+        # Get financial manager's comment
+        comment = self.fm_comment_entry.get().strip()
+        if not comment:
+            messagebox.showwarning("Empty Comment", "Please enter a comment before approving.")
+            return
+
+        # Approve the request and update
+        self.recruitment_manager.approve_request(request, comment)
+        messagebox.showinfo("Request Approved", f"Recruitment request for '{position}' approved.")
+        self.load_pending_recruitment_requests()  # Refresh list
+
+    def reject_selected_request(self):
+        selected_index = self.request_listbox.curselection()
+        if not selected_index:
+            messagebox.showwarning("Selection Error", "No recruitment request selected.")
+            return
+
+        # Get selected request details
+        selected_request_info = self.request_listbox.get(selected_index)
+        position = selected_request_info.split(",")[0].split(":")[1].strip()  # Extract position
+
+        # Find the request object
+        request = next((req for req in self.recruitment_manager.requests if req.position == position), None)
+        if not request:
+            messagebox.showerror("Request Not Found", "The selected recruitment request could not be found.")
+            return
+
+        # Get financial manager's comment
+        comment = self.fm_comment_entry.get().strip()
+        if not comment:
+            messagebox.showwarning("Empty Comment", "Please enter a comment before rejecting.")
+            return
+
+        # Reject the request and update
+        self.recruitment_manager.reject_request(request, comment)
+        messagebox.showinfo("Request Rejected", f"Recruitment request for '{position}' rejected.")
+        self.load_pending_recruitment_requests()  # Refresh list
 
 # Run the application
 if __name__ == "__main__":

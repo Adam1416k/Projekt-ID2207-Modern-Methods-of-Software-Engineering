@@ -27,3 +27,21 @@ class RecruitmentManager:
         """Add a new recruitment request and save."""
         self.requests.append(request)
         self.save_requests()
+
+    def approve_request(self, request, comment):
+        """Approve a recruitment request and add a financial manager's comment."""
+        request.fm_status = "Approved"
+        request.fm_comment = comment
+        self.save_requests()
+        print(f"Recruitment request for position '{request.position}' approved with comment: {comment}")
+
+    def reject_request(self, request, comment):
+        """Reject a recruitment request and add a financial manager's comment."""
+        request.fm_status = "Rejected"
+        request.fm_comment = comment
+        self.save_requests()
+        print(f"Recruitment request for position '{request.position}' rejected with comment: {comment}")
+
+    def get_pending_requests_for_financial_review(self):
+        """Return recruitment requests pending financial review."""
+        return [request for request in self.requests if request.fm_status is None]

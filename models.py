@@ -82,13 +82,15 @@ class Task:
     """ --------RECRUITMENT CLASS --------"""
 
 class RecruitmentRequest:
-    def __init__(self, position, num_hires, urgency, justification, submitted_by, status="Pending"):
+    def __init__(self, position, num_hires, urgency, justification, submitted_by, status="Pending", fm_status=None, fm_comment=None):
         self.position = position
         self.num_hires = num_hires
         self.urgency = urgency
         self.justification = justification
         self.submitted_by = submitted_by
         self.status = status
+        self.fm_status = fm_status  # Financial Manager approval status (Approved/Rejected)
+        self.fm_comment = fm_comment  # Financial Manager comment
 
     def to_dict(self):
         return {
@@ -97,7 +99,9 @@ class RecruitmentRequest:
             "urgency": self.urgency,
             "justification": self.justification,
             "submitted_by": self.submitted_by,
-            "status": self.status
+            "status": self.status,
+            "fm_status": self.fm_status,
+            "fm_comment": self.fm_comment,
         }
 
     @staticmethod
@@ -108,5 +112,7 @@ class RecruitmentRequest:
             urgency=data["urgency"],
             justification=data["justification"],
             submitted_by=data["submitted_by"],
-            status=data["status"]
+            status=data["status"],
+            fm_status=data.get("fm_status"),
+            fm_comment=data.get("fm_comment"),
         )
