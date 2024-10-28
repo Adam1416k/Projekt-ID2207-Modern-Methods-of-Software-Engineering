@@ -21,8 +21,6 @@ class EventOrganizerApp:
     """ ---------FIND AN EVENT BY SELECTING IT IN A VIEW--------- """
 
     def find_event_by_info(self, event_info, status):
-
-        # Retrieve the correct list of events based on status
         if status == "Pending First Approval":
             events = self.event_manager.get_pending_events_for_first_approval()
         elif status == "Pending Financial Assessment":
@@ -34,13 +32,12 @@ class EventOrganizerApp:
         else:
             events = []
 
-        # Iterate through the events and find the one matching the event_info string
         for event in events:
             event_display_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}"
             if event_display_info in event_info:
                 return event
 
-        return None  # Return None if no matching event is found
+        return None
 
 
     """----------  LOGIN + LOGOUT STORY ---------- """
