@@ -28,20 +28,19 @@ class RecruitmentManager:
         self.requests.append(request)
         self.save_requests()
 
-    def approve_request(self, request, comment):
-        """Approve a recruitment request and add a financial manager's comment."""
-        request.fm_status = "Approved"
-        request.fm_comment = comment
+    def approve_request_by_hr(self, request, comment):
+        """HR approval for a recruitment request with comment."""
+        request.status = "Approved by HR"
+        request.hr_comment = comment
         self.save_requests()
-        print(f"Recruitment request for position '{request.position}' approved with comment: {comment}")
+        print(f"Recruitment request for '{request.position}' approved by HR with comment: {comment}")
 
-    def reject_request(self, request, comment):
-        """Reject a recruitment request and add a financial manager's comment."""
-        request.fm_status = "Rejected"
-        request.fm_comment = comment
+    def reject_request_by_hr(self, request, comment):
+        """HR rejection for a recruitment request with comment."""
+        request.status = "Rejected by HR"
+        request.hr_comment = comment
         self.save_requests()
-        print(f"Recruitment request for position '{request.position}' rejected with comment: {comment}")
-
+        print(f"Recruitment request for '{request.position}' rejected by HR with comment: {comment}")
     
     #def get_pending_requests_for_financial_review(self):
         #"""Return recruitment requests pending financial review."""

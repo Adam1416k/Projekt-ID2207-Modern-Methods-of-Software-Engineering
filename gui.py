@@ -1,9 +1,10 @@
-from models import User, Role, EventRequest, Task, RecruitmentRequest, Advert
+from models import User, Role, EventRequest, Task, RecruitmentRequest, Advert, BudgetRequest
 from auth import login, has_access
 from managers.event_manager import EventManager
 from managers.task_manager import TaskManager
 from managers.recruitment_manager import RecruitmentManager
 from managers.advert_manager import AdvertManager
+from managers.budget_manager import BudgetManager
 import tkinter as tk
 from tkinter import messagebox, ttk
 from datetime import datetime
@@ -17,6 +18,7 @@ class EventOrganizerApp:
         self.task_manager = TaskManager()
         self.recruitment_manager = RecruitmentManager()
         self.advert_manager = AdvertManager()
+        self.budget_manager = BudgetManager()
         self.current_user = None
         self.create_login_screen()
 
@@ -588,6 +590,10 @@ class EventOrganizerApp:
         notebook.add(recruitment_request_tab, text="Recruitment Requests")
         self.setup_recruitment_request_tab(recruitment_request_tab)
 
+        budget_request_tab = tk.Frame(notebook)
+        notebook.add(budget_request_tab, text="Budget Requests")
+        self.setup_budget_request_tab(budget_request_tab)
+
         # Logout Button at the bottom
         logout_button = tk.Button(self.root, text="Logout", command=self.logout)
         logout_button.pack(pady=20)
@@ -634,6 +640,7 @@ class EventOrganizerApp:
         self.assigned_team_var = tk.StringVar(tab_frame)
         self.assigned_team_var.set(team_options[0])
         tk.OptionMenu(tab_frame, self.assigned_team_var, *team_options).pack()
+
 
         # Create Task Button
         tk.Button(tab_frame, text="Create Task", command=self.create_task_for_event).pack(pady=10)
@@ -738,13 +745,69 @@ class EventOrganizerApp:
         self.num_hires_entry.delete(0, tk.END)
         self.justification_entry.delete(0, tk.END)
         self.urgency_var.set("Medium")
+
+
+        # ----------- Budget Request Tab-------------
     
 
-    def clear_screen(self):
-        for widget in self.root.winfo_children():
-            widget.destroy()
 
+    def setup_budget_request_tab(self, tab_frame):
+        """Sets up the budget request tab for creating budget requests for tasks."""
+        tk.Label(tab_frame, text="Select a Task for Budget Request").pack(pady=5)
 
+        # Load tasks
+        tasks = self.task_manager.load_tasks()  # Assuming load_tasks() returns a list of tasks
+        self.task_map = {f"{task.task_name} ({task.event})": task for task in tasks}
+
+        # Populate the task dropdown
+        task_options = list(self.task_map.keys())
+        self.selected_task_var = tk.StringVar(tab_frame)
+        if task_options:
+            self.selected_task_var.set(task_options[0])  # Default to the first task
+        else:
+            self.selected_task_var.set("No tasks available")
+
+        tk.OptionMenu(tab_frame, self.selected_task_var, *task_options).pack()
+
+        # Budget Amount Entry
+        tk.Label(tab_frame, text="Requested Budget Amount").pack(pady=5)
+        self.budget_amount_entry = tk.Entry(tab_frame)
+        self.budget_amount_entry.pack()
+
+        # Submit Budget Request Button
+        tk.Button(tab_frame, text="Submit Budget Request", command=self.submit_budget_request).pack(pady=10)
+
+    def submit_budget_request(self):
+        """Handles the submission of a budget request for a selected task."""
+        # Validate task selection
+        selected_task_name = self.selected_task_var.get()
+        if selected_task_name == "No tasks available" or selected_task_name not in self.task_map:
+            messagebox.showwarning("Task Selection Error", "Please select a valid task.")
+            return
+
+        # Validate budget amount
+        budget_amount_str = self.budget_amount_entry.get().strip()
+        if not budget_amount_str.isdigit():
+            messagebox.showerror("Invalid Input", "Please enter a valid numeric budget amount.")
+            return
+        budget_amount = int(budget_amount_str)
+
+        # Get the selected task object
+        selected_task = self.task_map[selected_task_name]
+
+        # Create a BudgetRequest object
+        budget_request = BudgetRequest(
+            task_name=selected_task.task_name,
+            requested_by=self.current_user.username,  # Set the requesting user
+            amount=budget_amount
+        )
+
+        # Add the budget request to the manager and save to JSON
+        self.budget_manager.add_request(budget_request)
+
+        # Confirmation message and clear input
+        messagebox.showinfo("Budget Request Submitted", f"Budget request for '{selected_task.task_name}' submitted.")
+        self.budget_amount_entry.delete(0, tk.END)  # Clear the budget amount entry
 
 
     """ ---------- TASK REVIEW (SUB TEAM VIEW) ---------- """
@@ -892,7 +955,7 @@ class EventOrganizerApp:
         tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
 
     def setup_recruitment_review_tab(self, tab):
-        """Sets up the recruitment request review tab."""
+        """Sets up the recruitment request review tab for HR."""
         tk.Label(tab, text="Pending Recruitment Requests for HR Review").pack(pady=10)
 
         # Listbox to display pending requests
@@ -906,79 +969,55 @@ class EventOrganizerApp:
         self.hr_comment_entry.pack()
 
         # Approve and Reject buttons
-        tk.Button(tab, text="Approve Request", command=self.approve_selected_request).pack(pady=5)
-        tk.Button(tab, text="Reject Request", command=self.reject_selected_request).pack(pady=5)
+        tk.Button(tab, text="Approve Request", command=self.approve_selected_request_by_hr).pack(pady=5)
+        tk.Button(tab, text="Reject Request", command=self.reject_selected_request_by_hr).pack(pady=5)
 
-    def load_pending_recruitment_requests(self):
-        """Loads pending recruitment requests into the listbox for HR review."""
-        self.request_listbox.delete(0, tk.END)
-        pending_requests = self.recruitment_manager.get_pending_requests_for_HR()
-
-        if not pending_requests:
-            self.request_listbox.insert(tk.END, "No recruitment requests pending review.")
-        else:
-            for request in pending_requests:
-                request_info = f"Position: {request.position}, Hires: {request.num_hires}, Urgency: {request.urgency}, Justification: {request.justification}"
-                self.request_listbox.insert(tk.END, request_info)
-
-    def approve_selected_request(self):
+    def approve_selected_request_by_hr(self):
         """Approves the selected recruitment request with an HR comment."""
         selected_index = self.request_listbox.curselection()
         if not selected_index:
             messagebox.showwarning("Selection Error", "No recruitment request selected.")
             return
 
-        # Get selected request details
         selected_request_info = self.request_listbox.get(selected_index)
         position = selected_request_info.split(",")[0].split(":")[1].strip()
 
-        # Find the request object
         request = next((req for req in self.recruitment_manager.requests if req.position == position), None)
         if not request:
             messagebox.showerror("Request Not Found", "The selected recruitment request could not be found.")
             return
 
-        # Get HR comment
         comment = self.hr_comment_entry.get().strip()
         if not comment:
             messagebox.showwarning("Empty Comment", "Please enter a comment before approving.")
             return
 
-        # Approve the request and update
-        request.fm_status = "Approved"
-        request.fm_comment = comment
-        self.recruitment_manager.save_requests()
-        messagebox.showinfo("Request Approved", f"Recruitment request for '{position}' approved.")
+        self.recruitment_manager.approve_request_by_hr(request, comment)
+        messagebox.showinfo("Request Approved", f"Recruitment request for '{position}' approved by HR.")
         self.load_pending_recruitment_requests()  # Refresh list
 
-    def reject_selected_request(self):
+    def reject_selected_request_by_hr(self):
         """Rejects the selected recruitment request with an HR comment."""
         selected_index = self.request_listbox.curselection()
         if not selected_index:
             messagebox.showwarning("Selection Error", "No recruitment request selected.")
             return
 
-        # Get selected request details
         selected_request_info = self.request_listbox.get(selected_index)
         position = selected_request_info.split(",")[0].split(":")[1].strip()
 
-        # Find the request object
         request = next((req for req in self.recruitment_manager.requests if req.position == position), None)
         if not request:
             messagebox.showerror("Request Not Found", "The selected recruitment request could not be found.")
             return
 
-        # Get HR comment
         comment = self.hr_comment_entry.get().strip()
         if not comment:
             messagebox.showwarning("Empty Comment", "Please enter a comment before rejecting.")
             return
 
-        # Reject the request and update
-        request.fm_status = "Rejected"
-        request.fm_comment = comment
-        self.recruitment_manager.save_requests()
-        messagebox.showinfo("Request Rejected", f"Recruitment request for '{position}' rejected.")
+        self.recruitment_manager.reject_request_by_hr(request, comment)
+        messagebox.showinfo("Request Rejected", f"Recruitment request for '{position}' rejected by HR.")
         self.load_pending_recruitment_requests()  # Refresh list
 
     def setup_advertisement_tab(self, tab):

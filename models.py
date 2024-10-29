@@ -133,3 +133,17 @@ class Advert():
         self.experience = experience
         self.hr_comment = hr_comment if hr_comment else []
         self.status = status
+
+
+
+
+    """-------- Budget CLASS ---------"""
+
+
+class BudgetRequest:
+    def __init__(self, task_name, requested_by, amount, status="Pending", fm_comment=None):
+        self.task_name = task_name
+        self.requested_by = requested_by
+        self.amount = amount
+        self.status = status
+        self.fm_comment = fm_comment if fm_comment else ""
