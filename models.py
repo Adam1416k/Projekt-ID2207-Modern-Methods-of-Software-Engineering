@@ -83,17 +83,21 @@ class Task:
     """ --------RECRUITMENT CLASS --------"""
 
 class RecruitmentRequest:
-    def __init__(self, position, num_hires, urgency, justification, submitted_by, status="Pending", fm_status=None, fm_comment=None):
+    def __init__(self, position, num_hires, urgency, justification, submitted_by, status="Pending", fm_status=None, fm_comment=None, confirmed_start_date=None):
         self.position = position
         self.num_hires = num_hires
         self.urgency = urgency
         self.justification = justification
         self.submitted_by = submitted_by
         self.status = status
-        self.fm_status = fm_status  # Financial Manager approval status (Approved/Rejected)
-        self.fm_comment = fm_comment  # Financial Manager comment
+        self.fm_status = fm_status
+        self.fm_comment = fm_comment
+        self.confirmed_start_date = confirmed_start_date  # Start date of new hire
 
-
+    def confirm_hire(self, confirmed_start_date):
+        """Sets the confirmed start date and updates the status."""
+        self.confirmed_start_date = confirmed_start_date
+        self.status = "Confirmed Hire"
 
     def to_dict(self):
         return {
@@ -105,6 +109,7 @@ class RecruitmentRequest:
             "status": self.status,
             "fm_status": self.fm_status,
             "fm_comment": self.fm_comment,
+            "confirmed_start_date": self.confirmed_start_date
         }
 
     @staticmethod
@@ -118,7 +123,9 @@ class RecruitmentRequest:
             status=data["status"],
             fm_status=data.get("fm_status"),
             fm_comment=data.get("fm_comment"),
+            confirmed_start_date=data.get("confirmed_start_date")
         )
+
 
 
     """-------- ADVERT CLASS ---------"""

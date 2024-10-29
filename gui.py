@@ -588,8 +588,6 @@ class EventOrganizerApp:
     def create_task_screen(self):
         """Main screen setup with three tabs for Production Manager (PM)"""
         self.clear_screen()
-
-        # Create Notebook for tabs
         notebook = ttk.Notebook(self.root)
         notebook.pack(expand=True, fill="both")
 
@@ -611,6 +609,11 @@ class EventOrganizerApp:
         budget_request_tab = tk.Frame(notebook)
         notebook.add(budget_request_tab, text="Budget Requests")
         self.setup_budget_request_tab(budget_request_tab)
+
+        # Finalized Recruitment Tab
+        finalized_recruitment_tab = tk.Frame(notebook)
+        notebook.add(finalized_recruitment_tab, text="Confirmed Hires")
+        self.setup_finalized_recruitments_tab(finalized_recruitment_tab)
 
         # Logout Button at the bottom
         logout_button = tk.Button(self.root, text="Logout", command=self.logout)
@@ -989,9 +992,15 @@ class EventOrganizerApp:
         self.hr_comment_entry = tk.Entry(tab, width=80)
         self.hr_comment_entry.pack()
 
-        # Approve and Reject buttons
+        # Confirm Start Date Entry
+        tk.Label(tab, text="Confirm Start Date (YYYY-MM-DD)").pack(pady=5)
+        self.start_date_entry = tk.Entry(tab)
+        self.start_date_entry.pack()
+
+        # Approve, Reject, and Confirm buttons
         tk.Button(tab, text="Approve Request", command=self.approve_selected_request_by_hr).pack(pady=5)
         tk.Button(tab, text="Reject Request", command=self.reject_selected_request_by_hr).pack(pady=5)
+        tk.Button(tab, text="Confirm Hire and Inform PM", command=self.confirm_hire).pack(pady=10)
 
     def approve_selected_request_by_hr(self):
         """Approves the selected recruitment request with an HR comment."""
@@ -1081,14 +1090,21 @@ class EventOrganizerApp:
             messagebox.showerror("Invalid Input", "Please provide valid information for all fields.")
             return
 
+        # Date Parsing and Validation
         try:
             start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
         except ValueError:
-            messagebox.showerror("Invalid Date", "Please enter a valid start date (YYYY-MM-DD).")
+            messagebox.showerror("Invalid Date", "Please enter a valid start date in YYYY-MM-DD format.")
             return
 
-        # Create an Advert object and add to the manager
-        advert = Advert(position=position, start_date=start_date, coverage=coverage, experience=int(experience), hr_comment=[])
+        # Create an Advert object and add it to the manager
+        advert = Advert(
+            position=position,
+            start_date=start_date,
+            coverage=coverage,
+            experience=int(experience),
+            hr_comment=[]
+        )
         self.advert_manager.add_advert(advert)
         messagebox.showinfo("Advertisement Created", f"Job advertisement for '{position}' created.")
 
@@ -1097,6 +1113,72 @@ class EventOrganizerApp:
         self.start_date_entry.delete(0, tk.END)
         self.coverage_var.set("Full-time")
         self.experience_entry.delete(0, tk.END)
+
+    def confirm_hire(self):
+        selected_index = self.request_listbox.curselection()
+        if not selected_index:
+            messagebox.showwarning("Selection Error", "No recruitment request selected.")
+            return
+
+        selected_request_info = self.request_listbox.get(selected_index)
+        position = selected_request_info.split(",")[0].split(":")[1].strip()
+
+        request = next((req for req in self.recruitment_manager.requests if req.position == position), None)
+        if not request:
+            messagebox.showerror("Request Not Found", "The selected recruitment request could not be found.")
+            return
+
+        # Get and validate the start date
+        start_date_str = self.start_date_entry.get().strip()
+        try:
+            confirmed_start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            messagebox.showerror("Invalid Date", "Please enter a valid start date (YYYY-MM-DD).")
+            return
+
+        # Confirm the hire in the recruitment request
+        request.confirm_hire(confirmed_start_date)
+        self.recruitment_manager.save_requests()  # Save the update
+
+        messagebox.showinfo("Hire Confirmed", f"Recruitment for '{position}' confirmed with start date {confirmed_start_date}. PM has been informed.")
+
+        # Optionally reset the start date entry field
+        self.start_date_entry.delete(0, tk.END)
+
+        # Refresh the list of requests
+        self.load_pending_recruitment_requests()
+
+    def setup_finalized_recruitments_tab(self, tab):
+        tk.Label(tab, text="Confirmed Hires with Start Dates").pack(pady=10)
+
+        # Listbox to display confirmed hires
+        self.confirmed_hires_listbox = tk.Listbox(tab, width=80, height=10)
+        self.confirmed_hires_listbox.pack()
+        self.load_confirmed_recruitments()  # Load confirmed hires
+
+    def load_confirmed_recruitments(self):
+        """Loads confirmed hires into the PM's listbox."""
+        self.confirmed_hires_listbox.delete(0, tk.END)
+        confirmed_requests = [req for req in self.recruitment_manager.requests if req.status == "Confirmed Hire"]
+
+        if not confirmed_requests:
+            self.confirmed_hires_listbox.insert(tk.END, "No confirmed hires available.")
+        else:
+            for req in confirmed_requests:
+                hire_info = f"Position: {req.position}, Start Date: {req.confirmed_start_date}, Requested by: {req.submitted_by}"
+                self.confirmed_hires_listbox.insert(tk.END, hire_info)
+
+    def load_pending_recruitment_requests(self):
+        """Loads pending recruitment requests for review by HR."""
+        self.request_listbox.delete(0, tk.END)  # Clear the existing entries in the listbox
+        pending_requests = self.recruitment_manager.get_pending_requests_for_HR()
+
+        if not pending_requests:
+            self.request_listbox.insert(tk.END, "No recruitment requests pending review.")
+        else:
+            for request in pending_requests:
+                request_info = f"Position: {request.position}, Number of Hires: {request.num_hires}, Urgency: {request.urgency}"
+                self.request_listbox.insert(tk.END, request_info)
 
 # Run the application
 if __name__ == "__main__":
