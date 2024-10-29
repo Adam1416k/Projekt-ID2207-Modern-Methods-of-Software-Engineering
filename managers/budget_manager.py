@@ -55,3 +55,8 @@ class BudgetManager:
         """Add a new budget request and save."""
         self.requests.append(request)
         self.save_requests()  # Save immediately after adding a new request.
+
+
+    def get_pending_budgets_for_fin_approval(self):
+        """Returns a list of budget requests that are pending financial approval."""
+        return [request for request in self.requests if request.status == "Pending"]

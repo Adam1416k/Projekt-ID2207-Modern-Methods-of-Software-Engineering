@@ -12,6 +12,7 @@ from datetime import datetime
 class EventOrganizerApp:
     def __init__(self, root):
         self.root = root
+
         self.root.title("Event Organizer")
         self.root.geometry("800x800")
         self.event_manager = EventManager()
@@ -382,9 +383,9 @@ class EventOrganizerApp:
         self.setup_financial_comment_tab(financial_comment_tab)
 
         # Recruitment Review Tab
-        recruitment_review_tab = tk.Frame(notebook)
-        notebook.add(recruitment_review_tab, text="Recruitment Request Review")
-        self.setup_recruitment_review_tab(recruitment_review_tab)
+        budget_review_tab = tk.Frame(notebook)
+        notebook.add(budget_review_tab, text="Budget Request Review")
+        self.setup_budget_review_tab(budget_review_tab)
 
         # Logout Button at the bottom
         logout_button = tk.Button(self.root, text="Logout", command=self.logout)
@@ -481,15 +482,16 @@ class EventOrganizerApp:
         else:
             self.selected_comment_label.config(text="No comment available.")
 
-    """ ---------- RECRUITMENT REVIEW TAB ---------- """
+    """ ---------- BUDGET REQUEST REVIEW TAB ---------- """
 
-    def setup_recruitment_review_tab(self, tab_frame):
-        tk.Label(tab_frame, text="Pending Recruitment Requests for Financial Review").pack(pady=10)
+    def setup_budget_review_tab(self, tab_frame):
+        """Sets up the budget request review tab for the financial manager."""
+        tk.Label(tab_frame, text="Pending Budget Requests for Financial Review").pack(pady=10)
 
-        # Listbox to display pending requests
+        # Listbox to display pending budget requests
         self.request_listbox = tk.Listbox(tab_frame, width=80, height=10)
         self.request_listbox.pack()
-        self.load_pending_recruitment_requests()  # Load pending requests
+        self.load_pending_budget_requests()  # Load pending requests
 
         # Comment entry for financial manager
         tk.Label(tab_frame, text="Financial Manager Comment").pack(pady=5)
@@ -497,65 +499,81 @@ class EventOrganizerApp:
         self.fm_comment_entry.pack()
 
         # Approve and Reject buttons
-        tk.Button(tab_frame, text="Approve Request", command=self.approve_selected_request).pack(pady=5)
-        tk.Button(tab_frame, text="Reject Request", command=self.reject_selected_request).pack(pady=5)
+        tk.Button(tab_frame, text="Approve Request", command=self.approve_selected_budget_request).pack(pady=5)
+        tk.Button(tab_frame, text="Reject Request", command=self.reject_selected_budget_request).pack(pady=5)
 
-    def load_pending_recruitment_requests(self):
+    def load_pending_budget_requests(self):
+        """Loads pending budget requests into the listbox for financial review."""
         self.request_listbox.delete(0, tk.END)
-        pending_requests = self.recruitment_manager.get_pending_requests_for_HR()
+        pending_requests = self.budget_manager.get_pending_budgets_for_fin_approval()
 
         if not pending_requests:
-            self.request_listbox.insert(tk.END, "No recruitment requests pending review.")
+            self.request_listbox.insert(tk.END, "No budget requests pending review.")
         else:
             for request in pending_requests:
-                request_info = f"Position: {request.position}, Hires: {request.num_hires}, Urgency: {request.urgency}, Justification: {request.justification}"
+                request_info = f"Task: {request.task_name}, Amount: {request.amount}, Status: {request.status}"
                 self.request_listbox.insert(tk.END, request_info)
 
-    def approve_selected_request(self):
+    def approve_selected_budget_request(self):
+        """Approves the selected budget request with a financial manager's comment."""
         selected_index = self.request_listbox.curselection()
         if not selected_index:
-            messagebox.showwarning("Selection Error", "No recruitment request selected.")
+            messagebox.showwarning("Selection Error", "No budget request selected.")
             return
 
+        # Get selected request details
         selected_request_info = self.request_listbox.get(selected_index)
-        position = selected_request_info.split(",")[0].split(":")[1].strip()  # Extract position
+        task_name = selected_request_info.split(",")[0].split(":")[1].strip()  # Extract task name
 
-        request = next((req for req in self.recruitment_manager.requests if req.position == position), None)
+        # Find the budget request object
+        request = next((req for req in self.budget_manager.requests if req.task_name == task_name), None)
         if not request:
-            messagebox.showerror("Request Not Found", "The selected recruitment request could not be found.")
+            messagebox.showerror("Request Not Found", "The selected budget request could not be found.")
             return
 
+        # Get financial manager's comment
         comment = self.fm_comment_entry.get().strip()
         if not comment:
             messagebox.showwarning("Empty Comment", "Please enter a comment before approving.")
             return
 
-        self.recruitment_manager.approve_request(request, comment)
-        messagebox.showinfo("Request Approved", f"Recruitment request for '{position}' approved.")
-        self.load_pending_recruitment_requests()  # Refresh list
+        # Approve the budget request and update
+        request.status = "Approved"
+        request.fm_comment = comment
+        self.budget_manager.save_requests()
+        messagebox.showinfo("Request Approved", f"Budget request for '{task_name}' approved.")
+        self.load_pending_budget_requests()  # Refresh list
 
-    def reject_selected_request(self):
+    def reject_selected_budget_request(self):
+        """Rejects the selected budget request with a financial manager's comment."""
         selected_index = self.request_listbox.curselection()
         if not selected_index:
-            messagebox.showwarning("Selection Error", "No recruitment request selected.")
+            messagebox.showwarning("Selection Error", "No budget request selected.")
             return
 
+        # Get selected request details
         selected_request_info = self.request_listbox.get(selected_index)
-        position = selected_request_info.split(",")[0].split(":")[1].strip()  # Extract position
+        task_name = selected_request_info.split(",")[0].split(":")[1].strip()  # Extract task name
 
-        request = next((req for req in self.recruitment_manager.requests if req.position == position), None)
+        # Find the budget request object
+        request = next((req for req in self.budget_manager.requests if req.task_name == task_name), None)
         if not request:
-            messagebox.showerror("Request Not Found", "The selected recruitment request could not be found.")
+            messagebox.showerror("Request Not Found", "The selected budget request could not be found.")
             return
 
+        # Get financial manager's comment
         comment = self.fm_comment_entry.get().strip()
         if not comment:
             messagebox.showwarning("Empty Comment", "Please enter a comment before rejecting.")
             return
 
-        self.recruitment_manager.reject_request(request, comment)
-        messagebox.showinfo("Request Rejected", f"Recruitment request for '{position}' rejected.")
-        self.load_pending_recruitment_requests()  # Refresh list
+        # Reject the budget request and update
+        request.status = "Rejected"
+        request.fm_comment = comment
+        self.budget_manager.save_requests()
+        messagebox.showinfo("Request Rejected", f"Budget request for '{task_name}' rejected.")
+        self.load_pending_budget_requests()  # Refresh list
+
 
     """ ---------- CLEAR SCREEN HELPER ---------- """
 
@@ -748,8 +766,6 @@ class EventOrganizerApp:
 
 
         # ----------- Budget Request Tab-------------
-    
-
 
     def setup_budget_request_tab(self, tab_frame):
         """Sets up the budget request tab for creating budget requests for tasks."""
@@ -808,6 +824,11 @@ class EventOrganizerApp:
         # Confirmation message and clear input
         messagebox.showinfo("Budget Request Submitted", f"Budget request for '{selected_task.task_name}' submitted.")
         self.budget_amount_entry.delete(0, tk.END)  # Clear the budget amount entry
+
+
+
+
+
 
 
     """ ---------- TASK REVIEW (SUB TEAM VIEW) ---------- """
