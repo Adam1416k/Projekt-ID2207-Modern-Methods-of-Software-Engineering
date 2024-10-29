@@ -5,6 +5,7 @@ class Role:
     ADMINISTRATIVE_MANAGER = "AdministrativeManager"
     PRODUCTION_MANAGER = "ProductionManager"
     TEAM_MEMBER = "TeamMember"
+    HR = "HumanResources"
 
 """ --------USER CLASS --------"""
 

@@ -69,14 +69,16 @@ class EventOrganizerApp:
         elif has_access(self.current_user, Role.SENIOR_CUSTOMER_SERVICE):
             self.create_first_approval_screen()
         elif has_access(self.current_user, Role.FINANCIAL_MANAGER):
-            self.create_financial_comment_screen()
-            tk.Button(self.root, text="Review Recruitment Requests", command=self.create_financial_review_screen).pack(pady=10)
+            self.create_financial_screen()
+            # tk.Button(self.root, text="Review Recruitment Requests", command=self.create_financial_review_screen).pack(pady=10) # created a tab for this instead 
         elif has_access(self.current_user, Role.ADMINISTRATIVE_MANAGER):
             self.create_final_approval_screen()
         elif has_access(self.current_user, Role.PRODUCTION_MANAGER):
             self.create_task_screen()
         elif has_access(self.current_user, Role.TEAM_MEMBER):
             self.create_task_review_screen()
+        elif has_access(self.current_user, Role.HR):
+            self.create_recruitment_screen()
         else:
             messagebox.showerror("Access Denied", "You do not have access to any screens.")
 
@@ -253,6 +255,7 @@ class EventOrganizerApp:
 
 
 
+
     """ ---------- FINANCIAL COMMENTING STORY (FINANCIAL MANAGER VIEW) ---------- """
 
     def create_financial_comment_screen(self):
@@ -361,24 +364,137 @@ class EventOrganizerApp:
 
     """ ---------- FINANCIAL REVIEW (FINANCIAL MANAGER) ---------- """
 
-    def create_financial_review_screen(self):
+    def create_financial_screen(self):
+        """Main screen setup with two tabs for Financial Manager (FM)"""
         self.clear_screen()
-        tk.Label(self.root, text="Pending Recruitment Requests for Financial Review").pack(pady=10)
+
+        # Create Notebook for tabs
+        notebook = ttk.Notebook(self.root)
+        notebook.pack(expand=True, fill="both")
+
+        # Financial Comment Tab
+        financial_comment_tab = tk.Frame(notebook)
+        notebook.add(financial_comment_tab, text="Financial Comments")
+        self.setup_financial_comment_tab(financial_comment_tab)
+
+        # Recruitment Review Tab
+        recruitment_review_tab = tk.Frame(notebook)
+        notebook.add(recruitment_review_tab, text="Recruitment Request Review")
+        self.setup_recruitment_review_tab(recruitment_review_tab)
+
+        # Logout Button at the bottom
+        logout_button = tk.Button(self.root, text="Logout", command=self.logout)
+        logout_button.pack(pady=20)
+
+    """ ---------- FINANCIAL COMMENT TAB ---------- """
+
+    def setup_financial_comment_tab(self, tab_frame):
+        tk.Label(tab_frame, text="Events Needing Financial Comment").pack()
+
+        # Listbox for Events Needing Financial Comment
+        self.financial_pending_events_listbox = tk.Listbox(tab_frame, width=80, height=10)
+        self.financial_pending_events_listbox.pack()
+
+        # Load pending financial assessment events into the listbox
+        pending_events = self.event_manager.get_pending_events_for_fin_com()
+        if not pending_events:
+            self.financial_pending_events_listbox.insert(tk.END, "No events pending financial comment.")
+        else:
+            for event in pending_events:
+                event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}"
+                self.financial_pending_events_listbox.insert(tk.END, event_info)
+
+        # Text entry for financial comment
+        tk.Label(tab_frame, text="Financial Comment").pack()
+        self.financial_comment_entry = tk.Entry(tab_frame, width=80)
+        self.financial_comment_entry.pack()
+
+        # Button to add comment to the selected event
+        tk.Button(tab_frame, text="Add Financial Comment", command=self.add_financial_comment).pack()
+
+        # Divider between pending financial comment and pending final approval sections
+        tk.Label(tab_frame, text="------------------------").pack()
+
+        # Label for Events Pending Final Approval
+        tk.Label(tab_frame, text="Events Pending Final Approval").pack()
+
+        # Listbox for Events Pending Final Approval
+        self.pending_final_approval_listbox = tk.Listbox(tab_frame, width=80, height=10)
+        self.pending_final_approval_listbox.pack()
+        self.pending_final_approval_listbox.bind("<<ListboxSelect>>", self.display_financial_comment)
+
+        # Load events pending final approval into the listbox
+        pending_final_events = self.event_manager.get_pending_events_for_final_approval()
+        if not pending_final_events:
+            self.pending_final_approval_listbox.insert(tk.END, "No events pending final approval.")
+        else:
+            for event in pending_final_events:
+                event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}, Status: {event.status}"
+                self.pending_final_approval_listbox.insert(tk.END, event_info)
+
+        # Label to display selected event's financial comment
+        tk.Label(tab_frame, text="Selected Event's Financial Comment:").pack()
+        self.selected_comment_label = tk.Label(tab_frame, text="", wraplength=500, justify="left")
+        self.selected_comment_label.pack()
+
+    def add_financial_comment(self):
+        """Adds a financial comment to the selected event."""
+        selected_index = self.financial_pending_events_listbox.curselection()
+        if not selected_index:
+            messagebox.showwarning("Selection Error", "No event selected for financial comment.")
+            return
+
+        # Get selected event details
+        selected_event_info = self.financial_pending_events_listbox.get(selected_index)
+        event = self.find_event_by_info(selected_event_info, "Pending Financial Assessment")
+        
+        if event:
+            # Get the comment from the entry box
+            comment = self.financial_comment_entry.get()
+            if comment.strip():
+                # Add comment to event and save
+                self.event_manager.add_financial_comment(event, comment, reviewer=self.current_user.username)
+                messagebox.showinfo("Comment Added", f"Financial comment added by {self.current_user.username}.")
+                self.create_financial_manager_screen()  # Refresh screen to move event to next stage
+            else:
+                messagebox.showwarning("Empty Comment", "Please enter a financial comment before submitting.")
+
+    def display_financial_comment(self, event):
+        """Displays the financial comment of the selected event from pending final approval list."""
+        selected_index = self.pending_final_approval_listbox.curselection()
+        if not selected_index:
+            self.selected_comment_label.config(text="No comment available.")
+            return
+
+        # Get selected event details
+        selected_event_info = self.pending_final_approval_listbox.get(selected_index)
+        event = self.find_event_by_info(selected_event_info, "Pending Final Approval")
+
+        if event:
+            # Display the financial comment in the label
+            financial_comment = event.comments.get("financial", "No comment available.")
+            self.selected_comment_label.config(text=financial_comment)
+        else:
+            self.selected_comment_label.config(text="No comment available.")
+
+    """ ---------- RECRUITMENT REVIEW TAB ---------- """
+
+    def setup_recruitment_review_tab(self, tab_frame):
+        tk.Label(tab_frame, text="Pending Recruitment Requests for Financial Review").pack(pady=10)
 
         # Listbox to display pending requests
-        self.request_listbox = tk.Listbox(self.root, width=80, height=10)
+        self.request_listbox = tk.Listbox(tab_frame, width=80, height=10)
         self.request_listbox.pack()
         self.load_pending_recruitment_requests()  # Load pending requests
 
         # Comment entry for financial manager
-        tk.Label(self.root, text="Financial Manager Comment").pack(pady=5)
-        self.fm_comment_entry = tk.Entry(self.root, width=80)
+        tk.Label(tab_frame, text="Financial Manager Comment").pack(pady=5)
+        self.fm_comment_entry = tk.Entry(tab_frame, width=80)
         self.fm_comment_entry.pack()
 
         # Approve and Reject buttons
-        tk.Button(self.root, text="Approve Request", command=self.approve_selected_request).pack(pady=5)
-        tk.Button(self.root, text="Reject Request", command=self.reject_selected_request).pack(pady=5)
-        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
+        tk.Button(tab_frame, text="Approve Request", command=self.approve_selected_request).pack(pady=5)
+        tk.Button(tab_frame, text="Reject Request", command=self.reject_selected_request).pack(pady=5)
 
     def load_pending_recruitment_requests(self):
         self.request_listbox.delete(0, tk.END)
@@ -397,23 +513,19 @@ class EventOrganizerApp:
             messagebox.showwarning("Selection Error", "No recruitment request selected.")
             return
 
-        # Get selected request details
         selected_request_info = self.request_listbox.get(selected_index)
         position = selected_request_info.split(",")[0].split(":")[1].strip()  # Extract position
 
-        # Find the request object
         request = next((req for req in self.recruitment_manager.requests if req.position == position), None)
         if not request:
             messagebox.showerror("Request Not Found", "The selected recruitment request could not be found.")
             return
 
-        # Get financial manager's comment
         comment = self.fm_comment_entry.get().strip()
         if not comment:
             messagebox.showwarning("Empty Comment", "Please enter a comment before approving.")
             return
 
-        # Approve the request and update
         self.recruitment_manager.approve_request(request, comment)
         messagebox.showinfo("Request Approved", f"Recruitment request for '{position}' approved.")
         self.load_pending_recruitment_requests()  # Refresh list
@@ -424,94 +536,24 @@ class EventOrganizerApp:
             messagebox.showwarning("Selection Error", "No recruitment request selected.")
             return
 
-        # Get selected request details
         selected_request_info = self.request_listbox.get(selected_index)
         position = selected_request_info.split(",")[0].split(":")[1].strip()  # Extract position
 
-        # Find the request object
         request = next((req for req in self.recruitment_manager.requests if req.position == position), None)
         if not request:
             messagebox.showerror("Request Not Found", "The selected recruitment request could not be found.")
             return
 
-        # Get financial manager's comment
         comment = self.fm_comment_entry.get().strip()
         if not comment:
             messagebox.showwarning("Empty Comment", "Please enter a comment before rejecting.")
             return
 
-        # Reject the request and update
         self.recruitment_manager.reject_request(request, comment)
         messagebox.showinfo("Request Rejected", f"Recruitment request for '{position}' rejected.")
         self.load_pending_recruitment_requests()  # Refresh list
 
-
-
-
-
-    """ ---------- FINAL APPROVAL STORY (ADMINISTRATIVE MANAGER VIEW) ---------- """
-
-    def create_final_approval_screen(self):
-        """
-        Creates the final approval screen for Administrative Manager.
-        Displays events that have been financially commented and allows final approval.
-        """
-        self.clear_screen()
-
-        # Label for Pending Final Approval
-        tk.Label(self.root, text="Events Pending Final Approval").pack()
-
-        # Listbox for Pending Final Approval
-        self.final_approval_pending_events_listbox = tk.Listbox(self.root, width=80, height=10)
-        self.final_approval_pending_events_listbox.pack()
-
-        # Load pending final approval events into the listbox
-        pending_events = self.event_manager.get_pending_events_for_final_approval()
-        
-        if not pending_events:
-            self.final_approval_pending_events_listbox.insert(tk.END, "No events pending final approval.")
-        else:
-            for event in pending_events:
-                event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}"
-                self.final_approval_pending_events_listbox.insert(tk.END, event_info)
-
-        # Button to approve/reject selected event
-        tk.Button(self.root, text="Approve Selected Event", command=self.final_approve_selected_event).pack()
-        tk.Button(self.root, text="Reject Selected Event", command=self.final_reject_selected_event).pack()
-
-        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
-
-    def final_approve_selected_event(self):
-        """Approves the selected event from the pending final approval listbox."""
-        selected_index = self.final_approval_pending_events_listbox.curselection()
-        if not selected_index:
-            messagebox.showwarning("Selection Error", "No event selected for final approval.")
-            return
-
-        # Get selected event details
-        selected_event_info = self.final_approval_pending_events_listbox.get(selected_index)
-        event = self.find_event_by_info(selected_event_info, "Pending Final Approval")
-        
-        if event:
-            self.event_manager.final_approval(event, approved=True, reviewer=self.current_user.username)
-            messagebox.showinfo("Final Approval", f"Event '{event.event_name}' has been finally approved.")
-            self.create_final_approval_screen()  # Refresh screen
-
-    def final_reject_selected_event(self):
-        """Rejects the selected event from the pending final approval listbox."""
-        selected_index = self.final_approval_pending_events_listbox.curselection()
-        if not selected_index:
-            messagebox.showwarning("Selection Error", "No event selected for rejection.")
-            return
-
-        # Get selected event details
-        selected_event_info = self.final_approval_pending_events_listbox.get(selected_index)
-        event = self.find_event_by_info(selected_event_info, "Pending Final Approval")
-        
-        if event:
-            self.event_manager.final_approval(event, approved=False, reviewer=self.current_user.username)
-            messagebox.showinfo("Final Rejection", f"Event '{event.event_name}' has been rejected.")
-            self.create_final_approval_screen()  # Refresh screen
+    """ ---------- CLEAR SCREEN HELPER ---------- """
 
     def clear_screen(self):
         for widget in self.root.winfo_children():
