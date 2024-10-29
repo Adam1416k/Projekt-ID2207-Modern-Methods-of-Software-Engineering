@@ -57,4 +57,7 @@ Iteration 4 functionality:
     team_user, team
     hr_user, hr
 
-    Financial managers review and approve budget-related requests.
+    HR users can view recruitment request, and create job ads. 
+    PM can create recruitment requests and can create budget requests for a task. 
+
+    
