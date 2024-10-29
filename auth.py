@@ -6,7 +6,8 @@ users_db = {
     "fm_user": User("fm_user", "fm", Role.FINANCIAL_MANAGER),
     "am_user": User("am_user", "am", Role.ADMINISTRATIVE_MANAGER),
     "pm_user": User("pm_user", "pm", Role.PRODUCTION_MANAGER),
-    "team_user": User("team_user", "team", Role.TEAM_MEMBER)
+    "team_user": User("team_user", "team", Role.TEAM_MEMBER),
+    "hr_user": User("hr_user", "hr", Role.HR_TEAM)
 }
 
 def login(username, password):

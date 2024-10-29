@@ -5,7 +5,7 @@ class Role:
     ADMINISTRATIVE_MANAGER = "AdministrativeManager"
     PRODUCTION_MANAGER = "ProductionManager"
     TEAM_MEMBER = "TeamMember"
-    HR = "HumanResources"
+    HR_TEAM = "HumanResources"
 
 """ --------USER CLASS --------"""
 
@@ -93,6 +93,8 @@ class RecruitmentRequest:
         self.fm_status = fm_status  # Financial Manager approval status (Approved/Rejected)
         self.fm_comment = fm_comment  # Financial Manager comment
 
+
+
     def to_dict(self):
         return {
             "position": self.position,
@@ -117,3 +119,17 @@ class RecruitmentRequest:
             fm_status=data.get("fm_status"),
             fm_comment=data.get("fm_comment"),
         )
+
+
+    """-------- ADVERT CLASS ---------"""
+
+
+class Advert(): 
+    def __init__(self, position, start_date, coverage, experience, hr_comment, status = "Created"):
+        #self.title = title
+        self.position = position
+        self.start_date = start_date
+        self.coverage = coverage
+        self.experience = experience
+        self.hr_comment = hr_comment if hr_comment else []
+        self.status = status

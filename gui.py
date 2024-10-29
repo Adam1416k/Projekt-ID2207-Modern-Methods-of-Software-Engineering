@@ -1,8 +1,9 @@
-from models import User, Role, EventRequest, Task, RecruitmentRequest
+from models import User, Role, EventRequest, Task, RecruitmentRequest, Advert
 from auth import login, has_access
 from managers.event_manager import EventManager
 from managers.task_manager import TaskManager
 from managers.recruitment_manager import RecruitmentManager
+from managers.advert_manager import AdvertManager
 import tkinter as tk
 from tkinter import messagebox, ttk
 from datetime import datetime
@@ -15,6 +16,7 @@ class EventOrganizerApp:
         self.event_manager = EventManager()
         self.task_manager = TaskManager()
         self.recruitment_manager = RecruitmentManager()
+        self.advert_manager = AdvertManager()
         self.current_user = None
         self.create_login_screen()
 
@@ -77,8 +79,8 @@ class EventOrganizerApp:
             self.create_task_screen()
         elif has_access(self.current_user, Role.TEAM_MEMBER):
             self.create_task_review_screen()
-        elif has_access(self.current_user, Role.HR):
-            self.create_recruitment_screen()
+        elif has_access(self.current_user, Role.HR_TEAM):  # Updated to Role.HR_TEAM
+            self.create_hr_team_screen()
         else:
             messagebox.showerror("Access Denied", "You do not have access to any screens.")
 
@@ -498,7 +500,7 @@ class EventOrganizerApp:
 
     def load_pending_recruitment_requests(self):
         self.request_listbox.delete(0, tk.END)
-        pending_requests = self.recruitment_manager.get_pending_requests_for_financial_review()
+        pending_requests = self.recruitment_manager.get_pending_requests_for_HR()
 
         if not pending_requests:
             self.request_listbox.insert(tk.END, "No recruitment requests pending review.")
@@ -862,6 +864,179 @@ class EventOrganizerApp:
                 self.reviewed_tasks_listbox.insert(tk.END, task_info)
 
 
+
+
+
+
+    """ ---------- RECRUITMENT VIEW (HR TEAM VIEW) ---------- """
+
+    def create_hr_team_screen(self):
+        """Sets up the HR team interface with two tabs: Recruitment Review and Job Advertisement."""
+        self.clear_screen()
+
+        # Create Notebook for Tabs
+        notebook = ttk.Notebook(self.root)
+        notebook.pack(expand=True, fill="both")
+
+        # Tab 1: Review Recruitment Requests
+        review_tab = tk.Frame(notebook)
+        notebook.add(review_tab, text="Review Recruitment Requests")
+        self.setup_recruitment_review_tab(review_tab)
+
+        # Tab 2: Create Job Advertisement
+        advertisement_tab = tk.Frame(notebook)
+        notebook.add(advertisement_tab, text="Create Job Advertisement")
+        self.setup_advertisement_tab(advertisement_tab)
+
+        # Logout Button (appears at the bottom of both tabs)
+        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
+
+    def setup_recruitment_review_tab(self, tab):
+        """Sets up the recruitment request review tab."""
+        tk.Label(tab, text="Pending Recruitment Requests for HR Review").pack(pady=10)
+
+        # Listbox to display pending requests
+        self.request_listbox = tk.Listbox(tab, width=80, height=10)
+        self.request_listbox.pack()
+        self.load_pending_recruitment_requests()  # Load pending requests
+
+        # Comment entry for HR team
+        tk.Label(tab, text="HR Comment").pack(pady=5)
+        self.hr_comment_entry = tk.Entry(tab, width=80)
+        self.hr_comment_entry.pack()
+
+        # Approve and Reject buttons
+        tk.Button(tab, text="Approve Request", command=self.approve_selected_request).pack(pady=5)
+        tk.Button(tab, text="Reject Request", command=self.reject_selected_request).pack(pady=5)
+
+    def load_pending_recruitment_requests(self):
+        """Loads pending recruitment requests into the listbox for HR review."""
+        self.request_listbox.delete(0, tk.END)
+        pending_requests = self.recruitment_manager.get_pending_requests_for_HR()
+
+        if not pending_requests:
+            self.request_listbox.insert(tk.END, "No recruitment requests pending review.")
+        else:
+            for request in pending_requests:
+                request_info = f"Position: {request.position}, Hires: {request.num_hires}, Urgency: {request.urgency}, Justification: {request.justification}"
+                self.request_listbox.insert(tk.END, request_info)
+
+    def approve_selected_request(self):
+        """Approves the selected recruitment request with an HR comment."""
+        selected_index = self.request_listbox.curselection()
+        if not selected_index:
+            messagebox.showwarning("Selection Error", "No recruitment request selected.")
+            return
+
+        # Get selected request details
+        selected_request_info = self.request_listbox.get(selected_index)
+        position = selected_request_info.split(",")[0].split(":")[1].strip()
+
+        # Find the request object
+        request = next((req for req in self.recruitment_manager.requests if req.position == position), None)
+        if not request:
+            messagebox.showerror("Request Not Found", "The selected recruitment request could not be found.")
+            return
+
+        # Get HR comment
+        comment = self.hr_comment_entry.get().strip()
+        if not comment:
+            messagebox.showwarning("Empty Comment", "Please enter a comment before approving.")
+            return
+
+        # Approve the request and update
+        request.fm_status = "Approved"
+        request.fm_comment = comment
+        self.recruitment_manager.save_requests()
+        messagebox.showinfo("Request Approved", f"Recruitment request for '{position}' approved.")
+        self.load_pending_recruitment_requests()  # Refresh list
+
+    def reject_selected_request(self):
+        """Rejects the selected recruitment request with an HR comment."""
+        selected_index = self.request_listbox.curselection()
+        if not selected_index:
+            messagebox.showwarning("Selection Error", "No recruitment request selected.")
+            return
+
+        # Get selected request details
+        selected_request_info = self.request_listbox.get(selected_index)
+        position = selected_request_info.split(",")[0].split(":")[1].strip()
+
+        # Find the request object
+        request = next((req for req in self.recruitment_manager.requests if req.position == position), None)
+        if not request:
+            messagebox.showerror("Request Not Found", "The selected recruitment request could not be found.")
+            return
+
+        # Get HR comment
+        comment = self.hr_comment_entry.get().strip()
+        if not comment:
+            messagebox.showwarning("Empty Comment", "Please enter a comment before rejecting.")
+            return
+
+        # Reject the request and update
+        request.fm_status = "Rejected"
+        request.fm_comment = comment
+        self.recruitment_manager.save_requests()
+        messagebox.showinfo("Request Rejected", f"Recruitment request for '{position}' rejected.")
+        self.load_pending_recruitment_requests()  # Refresh list
+
+    def setup_advertisement_tab(self, tab):
+        """Sets up the job advertisement creation tab."""
+        tk.Label(tab, text="Create Job Advertisement").pack(pady=10)
+
+        # Position Entry
+        tk.Label(tab, text="Position").pack()
+        self.position_entry = tk.Entry(tab)
+        self.position_entry.pack()
+
+        # Start Date Entry
+        tk.Label(tab, text="Start Date (YYYY-MM-DD)").pack()
+        self.start_date_entry = tk.Entry(tab)
+        self.start_date_entry.pack()
+
+        # Coverage Dropdown (Full-time or Part-time)
+        tk.Label(tab, text="Job Coverage").pack()
+        self.coverage_var = tk.StringVar(tab)
+        self.coverage_var.set("Full-time")
+        tk.OptionMenu(tab, self.coverage_var, "Full-time", "Part-time").pack()
+
+        # Experience Entry
+        tk.Label(tab, text="Experience (Years)").pack()
+        self.experience_entry = tk.Entry(tab)
+        self.experience_entry.pack()
+
+        # Submit Button
+        tk.Button(tab, text="Create Advertisement", command=self.submit_job_advertisement).pack(pady=20)
+
+    def submit_job_advertisement(self):
+        """Creates and submits a job advertisement."""
+        position = self.position_entry.get().strip()
+        start_date_str = self.start_date_entry.get().strip()
+        coverage = self.coverage_var.get()
+        experience = self.experience_entry.get().strip()
+
+        # Validate inputs
+        if not position or not experience.isdigit():
+            messagebox.showerror("Invalid Input", "Please provide valid information for all fields.")
+            return
+
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            messagebox.showerror("Invalid Date", "Please enter a valid start date (YYYY-MM-DD).")
+            return
+
+        # Create an Advert object and add to the manager
+        advert = Advert(position=position, start_date=start_date, coverage=coverage, experience=int(experience), hr_comment=[])
+        self.advert_manager.add_advert(advert)
+        messagebox.showinfo("Advertisement Created", f"Job advertisement for '{position}' created.")
+
+        # Clear form inputs
+        self.position_entry.delete(0, tk.END)
+        self.start_date_entry.delete(0, tk.END)
+        self.coverage_var.set("Full-time")
+        self.experience_entry.delete(0, tk.END)
 
 # Run the application
 if __name__ == "__main__":

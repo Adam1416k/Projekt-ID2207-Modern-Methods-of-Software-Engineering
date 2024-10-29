@@ -42,6 +42,11 @@ class RecruitmentManager:
         self.save_requests()
         print(f"Recruitment request for position '{request.position}' rejected with comment: {comment}")
 
-    def get_pending_requests_for_financial_review(self):
+    
+    #def get_pending_requests_for_financial_review(self):
+        #"""Return recruitment requests pending financial review."""
+       # return [request for request in self.requests if request.fm_status is None]
+       
+    def get_pending_requests_for_HR(self):
         """Return recruitment requests pending financial review."""
         return [request for request in self.requests if request.fm_status is None]
