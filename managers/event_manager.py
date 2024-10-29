@@ -71,7 +71,7 @@ class EventManager:
     def financial_comment(self, event, approved, reviewer):
         if event.status == "Pending Financial Assessment":
             event.status = "Pending Final Approval"
-            event.comments["financial"] = f"Commented by {reviewer}: {comment}"
+            event.comments["financial"] = f"{comment}"
         return event
 
     def add_financial_comment(self, event, comment, reviewer):
