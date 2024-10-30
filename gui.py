@@ -499,26 +499,24 @@ class EventOrganizerApp:
         self.fm_comment_entry.pack()
 
         # Approve and Reject buttons
-        tk.Button(tab_frame, text="Approve Request", command=lambda: self.approve_selected_request(approved=True)).pack(pady=5)
-        tk.Button(tab_frame, text="Reject Request", command=lambda: self.reject_selected_request(approved=False)).pack(pady=5)
+        tk.Button(tab_frame, text="Approve Request", command=lambda: self.process_budget_request(approved=True)).pack(pady=5)
+        tk.Button(tab_frame, text="Reject Request", command=lambda: self.process_budget_request(approved=False)).pack(pady=5)
 
     def load_pending_budget_requests(self):
         """Loads pending budget requests for financial review into the listbox."""
         self.request_listbox.delete(0, tk.END)
         self.budget_manager.requests = self.budget_manager.load_requests()
         pending_requests = self.budget_manager.get_pending_budgets_for_fin_approval()
-    
+        
         if not pending_requests:
-            # Show message if no pending requests remain
             self.request_listbox.insert(tk.END, "No budget requests pending review.")
         else:
-            # Insert each pending request into the listbox
             for request in pending_requests:
                 request_info = f"Task: {request.task_name}, Amount: {request.amount}, Requested by: {request.requested_by}"
                 self.request_listbox.insert(tk.END, request_info)
 
-
-    def approve_selected_request(self):
+    def process_budget_request(self, approved):
+        """Handles approval or rejection of the selected budget request with an FM comment."""
         selected_index = self.request_listbox.curselection()
         if not selected_index:
             messagebox.showwarning("Selection Error", "No budget request selected.")
@@ -527,35 +525,26 @@ class EventOrganizerApp:
         selected_request_info = self.request_listbox.get(selected_index)
         task_name = selected_request_info.split(",")[0].split(":")[1].strip()
 
-        # Find and approve the request
+        # Find the request by task_name
         request = next((req for req in self.budget_manager.requests if req.task_name == task_name), None)
         if not request:
             messagebox.showerror("Request Not Found", "The selected budget request could not be found.")
             return
 
-        self.budget_manager.approve_request(request, approved=True)
-        messagebox.showinfo("Request Approved", f"Budget request for '{task_name}' approved.")
-        self.load_pending_budget_requests()  # Refresh the list
-
-    def reject_selected_request(self):
-        selected_index = self.request_listbox.curselection()
-        if not selected_index:
-            messagebox.showwarning("Selection Error", "No budget request selected.")
+        # Retrieve FM comment
+        fm_comment = self.fm_comment_entry.get().strip()
+        if not fm_comment:
+            messagebox.showwarning("Empty Comment", "Please enter a comment before proceeding.")
             return
 
-        selected_request_info = self.request_listbox.get(selected_index)
-        task_name = selected_request_info.split(",")[0].split(":")[1].strip()
+        # Process request
+        updated_request = self.budget_manager.initial_review(request, approved=approved, fm_comment=fm_comment)
+        action = "approved" if approved else "rejected"
+        messagebox.showinfo("Request Processed", f"Budget request for '{task_name}' has been {action}.")
 
-        # Find and reject the request
-        request = next((req for req in self.budget_manager.requests if req.task_name == task_name), None)
-        if not request:
-            messagebox.showerror("Request Not Found", "The selected budget request could not be found.")
-            return
-
-        self.budget_manager.approve_request(request, approved=False)
-        messagebox.showinfo("Request Rejected", f"Budget request for '{task_name}' rejected.")
-        self.load_pending_budget_requests()  # Refresh the list
-
+        # Refresh list and clear comment field
+        self.load_pending_budget_requests()  # Refresh list
+        self.fm_comment_entry.delete(0, tk.END)  # Clear comment field
 
     """ ---------- CLEAR SCREEN HELPER ---------- """
 
@@ -853,7 +842,7 @@ class EventOrganizerApp:
         # ----------- Budget Request Tab-------------
 
     def setup_budget_request_tab(self, tab_frame):
-        """Sets up the budget request tab for creating budget requests for tasks."""
+        """Sets up the budget request tab for creating and viewing budget requests for tasks."""
         tk.Label(tab_frame, text="Select a Task for Budget Request").pack(pady=5)
 
         # Load tasks
@@ -877,6 +866,14 @@ class EventOrganizerApp:
 
         # Submit Budget Request Button
         tk.Button(tab_frame, text="Submit Budget Request", command=self.submit_budget_request).pack(pady=10)
+
+        # Status of Submitted Budget Requests Header
+        tk.Label(tab_frame, text="Status of Submitted Budget Requests").pack(pady=10)
+
+        # Listbox for displaying submitted budget requests
+        self.budget_status_listbox = tk.Listbox(tab_frame, width=80, height=10)
+        self.budget_status_listbox.pack()
+        self.load_submitted_budget_requests()  # Load and display submitted budget requests
 
     def submit_budget_request(self):
         """Handles the submission of a budget request for a selected task."""
@@ -909,6 +906,21 @@ class EventOrganizerApp:
         # Confirmation message and clear input
         messagebox.showinfo("Budget Request Submitted", f"Budget request for '{selected_task.task_name}' submitted.")
         self.budget_amount_entry.delete(0, tk.END)  # Clear the budget amount entry
+
+        # Refresh the submitted budget requests list
+        self.load_submitted_budget_requests()
+
+    def load_submitted_budget_requests(self):
+        """Loads all submitted budget requests and displays them in the listbox."""
+        self.budget_status_listbox.delete(0, tk.END)
+        submitted_requests = self.budget_manager.requests  # Load all requests
+
+        if not submitted_requests:
+            self.budget_status_listbox.insert(tk.END, "No submitted budget requests.")
+        else:
+            for request in submitted_requests:
+                request_info = f"Task: {request.task_name}, Amount: {request.amount}, Status: {request.status}, Comment: {request.fm_comment}"
+                self.budget_status_listbox.insert(tk.END, request_info)
 
 
      # ----------- CONFIRMED AND REJECTED RECRUITMENT REQUESTS TAB -------------

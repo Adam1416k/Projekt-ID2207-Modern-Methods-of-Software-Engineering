@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 from models import BudgetRequest
 
 class BudgetManager:
@@ -26,7 +25,37 @@ class BudgetManager:
             print("No budget requests file found or JSON error.")
             return []
 
-    """ ------------  SERIALIZE AND DESERIALIZE BUDGET REQUEST FOR STORAGE TO JSON ------------ """
+    """ ------------ ADD NEW BUDGET REQUEST ------------ """
+
+    def add_request(self, request):
+        """Add a new budget request and save."""
+        self.requests.append(request)
+        self.save_requests()  # Save immediately after adding a new request.
+
+    """ ------------ BUDGET REQUEST STATUS UPDATING ------------ """
+
+    def initial_review(self, request, approved, fm_comment):
+        if request.status == "Pending":
+            request.status = "Approved" if approved else "Rejected"
+            request.fm_comment = fm_comment  # Save FM comment
+            self.save_requests()  # Save changes immediately
+        return request
+
+    """ ------------ VIEW FILTERS FOR APPROVAL STAGES ------------ """
+
+    def get_pending_budgets_for_fin_approval(self):
+        """Returns a list of budget requests that are pending initial review."""
+        return [request for request in self.requests if request.status == "Pending"]
+
+    def get_approved_budgets(self):
+        """Returns a list of budget requests that have been approved."""
+        return [request for request in self.requests if request.status == "Approved"]
+
+    def get_rejected_budgets(self):
+        """Returns a list of budget requests that have been rejected."""
+        return [request for request in self.requests if request.status == "Rejected"]
+
+    """ ------------ SERIALIZE AND DESERIALIZE BUDGET REQUEST ------------ """
 
     def serialize_request(self, request):
         """Convert a BudgetRequest object to a serializable dictionary."""
@@ -39,36 +68,11 @@ class BudgetManager:
         }
 
     def deserialize_request(self, data):
-        # Instantiate BudgetRequest with deserialized data
-        request = BudgetRequest(
+        """Convert a dictionary back to a BudgetRequest object."""
+        return BudgetRequest(
             task_name=data["task_name"],
             requested_by=data["requested_by"],
             amount=data["amount"],
-            status=data.get("status", "Pending"),  # Default to "Pending" if not provided
-            fm_comment=data.get("fm_comment", "")  # Default to empty string if not provided
+            status=data.get("status", "Pending"),
+            fm_comment=data.get("fm_comment", "")
         )
-        return request
-
-    """ ------------  ADD BUDGET REQUEST ------------ """
-
-    def add_request(self, request):
-        """Add a new budget request and save."""
-        self.requests.append(request)
-        self.save_requests()  # Save immediately after adding a new request.
-
-
-    # In BudgetManager
-    def approve_request(self, request, approved):
-        """Approves or rejects a budget request and saves the updated request."""
-        if request.status == "Pending":
-            request.status = "Approved" if approved else "Rejected"
-            request.fm_comment = "Budget is approved" if approved else "Budget is denied"
-            self.save_requests()  # Save the status update immediately
-        return request
-
-
-
-
-    def get_pending_budgets_for_fin_approval(self):
-        """Returns a list of budget requests that are pending financial approval."""
-        return [request for request in self.requests if request.status == "Pending"]
