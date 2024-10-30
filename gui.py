@@ -460,7 +460,7 @@ class EventOrganizerApp:
                 # Add comment to event and save
                 self.event_manager.add_financial_comment(event, comment, reviewer=self.current_user.username)
                 messagebox.showinfo("Comment Added", f"Financial comment added by {self.current_user.username}.")
-                self.create_financial_manager_screen()  # Refresh screen to move event to next stage
+                self.create_financial_comment_screen()  # Refresh screen to move event to next stage
             else:
                 messagebox.showwarning("Empty Comment", "Please enter a financial comment before submitting.")
 
@@ -580,6 +580,105 @@ class EventOrganizerApp:
     def clear_screen(self):
         for widget in self.root.winfo_children():
             widget.destroy()
+
+
+
+
+    """ ---------- FINAL APPROVAL STORY (ADMINISTRATIVE MANAGER VIEW) ---------- """
+
+    def create_final_approval_screen(self):
+        """
+        Creates the final approval screen for Administrative Manager.
+        Displays events that have been financially commented and allows final approval.
+        """
+        self.clear_screen()
+
+        # Label for Pending Final Approval
+        tk.Label(self.root, text="Events Pending Final Approval").pack()
+
+        # Listbox for Pending Final Approval
+        self.final_approval_pending_events_listbox = tk.Listbox(self.root, width=80, height=10)
+        self.final_approval_pending_events_listbox.pack()
+        self.final_approval_pending_events_listbox.bind("<<ListboxSelect>>", self.display_financial_comment_final_approval)
+
+
+        # Load pending final approval events into the listbox
+        pending_events = self.event_manager.get_pending_events_for_final_approval()
+        
+        if not pending_events:
+            self.final_approval_pending_events_listbox.insert(tk.END, "No events pending final approval.")
+        else:
+            for event in pending_events:
+                event_info = f"Name: {event.event_name}, Date: {event.date}, Time: {event.time}, Location: {event.location}, Client: {event.client_name}"
+                self.final_approval_pending_events_listbox.insert(tk.END, event_info)
+
+        # Label to display the financial comment
+        tk.Label(self.root, text="Financial Comment:").pack()
+        self.selected_comment_label = tk.Label(self.root, text="", wraplength=500, justify="left")
+        self.selected_comment_label.pack()
+
+        # Button to approve/reject selected event
+        tk.Button(self.root, text="Approve Selected Event", command=self.final_approve_selected_event).pack()
+        tk.Button(self.root, text="Reject Selected Event", command=self.final_reject_selected_event).pack()
+
+        tk.Button(self.root, text="Logout", command=self.logout).pack(pady=20)
+
+    def final_approve_selected_event(self):
+        """Approves the selected event from the pending final approval listbox."""
+        selected_index = self.final_approval_pending_events_listbox.curselection()
+        if not selected_index:
+            messagebox.showwarning("Selection Error", "No event selected for final approval.")
+            return
+
+        # Get selected event details
+        selected_event_info = self.final_approval_pending_events_listbox.get(selected_index)
+        event = self.find_event_by_info(selected_event_info, "Pending Final Approval")
+        
+        if event:
+            self.event_manager.final_approval(event, approved=True, reviewer=self.current_user.username)
+            messagebox.showinfo("Final Approval", f"Event '{event.event_name}' has been finally approved.")
+            self.create_final_approval_screen()  # Refresh screen
+
+    def display_financial_comment_final_approval(self, event):
+        selected_index = self.final_approval_pending_events_listbox.curselection()
+        if not selected_index:
+            self.selected_comment_label.config(text="No comment available.")
+            return
+
+        # Get selected event details
+        selected_event_info = self.final_approval_pending_events_listbox.get(selected_index)
+        event = self.find_event_by_info(selected_event_info, "Pending Final Approval")
+
+        # Display the financial comment if available
+        if event:
+            financial_comment = event.comments.get("financial", "No comment available.")
+            self.selected_comment_label.config(text=financial_comment)
+        else:
+            self.selected_comment_label.config(text="No comment available.")
+
+
+    def final_reject_selected_event(self):
+        """Rejects the selected event from the pending final approval listbox."""
+        selected_index = self.final_approval_pending_events_listbox.curselection()
+        if not selected_index:
+            messagebox.showwarning("Selection Error", "No event selected for rejection.")
+            return
+
+        # Get selected event details
+        selected_event_info = self.final_approval_pending_events_listbox.get(selected_index)
+        event = self.find_event_by_info(selected_event_info, "Pending Final Approval")
+        
+        if event:
+            self.event_manager.final_approval(event, approved=False, reviewer=self.current_user.username)
+            messagebox.showinfo("Final Rejection", f"Event '{event.event_name}' has been rejected.")
+            self.create_final_approval_screen()  # Refresh screen
+
+    def clear_screen(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+
+
 
     
 
