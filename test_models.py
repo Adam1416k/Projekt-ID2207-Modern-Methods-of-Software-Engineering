@@ -17,7 +17,7 @@ class TestEventRequestModel(unittest.TestCase):
         event = EventRequest("Conference", "2024-10-01", "10:00", "Stockholm", "ABC Corp")
         self.assertEqual(event.event_name, "Conference")
         self.assertEqual(event.client_name, "ABC Corp")
-        self.assertEqual(event.status, "Pending")
+        self.assertEqual(event.status, "Pending First Approval")
 
     def test_first_approval(self):
         event = EventRequest("Workshop", "2024-10-05", "14:00", "Gothenburg", "XYZ Ltd")
@@ -31,24 +31,24 @@ class TestEventRequestModel(unittest.TestCase):
         self.assertEqual(event.status, "Rejected")
         self.assertEqual(event.comments["first_approval"], "Rejected by SeniorCS")
 
-    def test_financial_assessment(self):
+    def test_financial_comment(self):
         event = EventRequest("Expo", "2024-11-15", "09:00", "Malmo", "DEF Inc")
         event.first_approval(approved=True, reviewer="SeniorCS")
-        event.financial_assessment(approved=True, budget_comments="Budget approved", reviewer="FinManager")
+        event.financial_comment(comment="Budget approved", reviewer="FinManager")
         self.assertEqual(event.status, "Pending Final Approval")
-        self.assertEqual(event.comments["financial"], "Approved by FinManager: Budget approved")
+        self.assertEqual(event.comments["financial"], "Commented by FinManager: Budget approved")
 
-    def test_financial_assessment_rejection(self):
+    def test_financial_comment_rejection(self):
         event = EventRequest("Expo", "2024-11-15", "09:00", "Malmo", "DEF Inc")
         event.first_approval(approved=True, reviewer="SeniorCS")
-        event.financial_assessment(approved=False, budget_comments="Budget too high", reviewer="FinManager")
-        self.assertEqual(event.status, "Rejected")
-        self.assertEqual(event.comments["financial"], "Rejected by FinManager: Budget too high")
+        event.financial_comment(comment="Budget too high", reviewer="FinManager")
+        self.assertEqual(event.status, "Pending Final Approval")
+        self.assertEqual(event.comments["financial"], "Commented by FinManager: Budget too high")
 
     def test_final_approval(self):
         event = EventRequest("Annual Gala", "2024-12-20", "18:00", "Lund", "LMN LLC")
         event.first_approval(approved=True, reviewer="SeniorCS")
-        event.financial_assessment(approved=True, budget_comments="Budget within limits", reviewer="FinManager")
+        event.financial_comment(comment="Budget within limits", reviewer="FinManager")
         event.final_approval(approved=True, reviewer="AdminManager")
         self.assertEqual(event.status, "Approved")
         self.assertEqual(event.comments["final_approval"], "Approved by AdminManager")
@@ -56,13 +56,10 @@ class TestEventRequestModel(unittest.TestCase):
     def test_final_approval_rejection(self):
         event = EventRequest("Annual Gala", "2024-12-20", "18:00", "Lund", "LMN LLC")
         event.first_approval(approved=True, reviewer="SeniorCS")
-        event.financial_assessment(approved=True, budget_comments="Budget within limits", reviewer="FinManager")
+        event.financial_comment(comment="Budget within limits", reviewer="FinManager")
         event.final_approval(approved=False, reviewer="AdminManager")
         self.assertEqual(event.status, "Rejected")
         self.assertEqual(event.comments["final_approval"], "Rejected by AdminManager")
-
-
-    
 
 if __name__ == "__main__":
     unittest.main()

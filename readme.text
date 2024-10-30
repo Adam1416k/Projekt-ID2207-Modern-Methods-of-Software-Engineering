@@ -1,61 +1,20 @@
-FIRST RELEASE
+Users (Username and Password): 
+cs_user, cs
+scs_user, scs
+fm_user, fm
+am_user, am
+pm_user, pm
+team_user, team
+hr_user, hr
 
-Iteration 1 functionality:
-    Users:
-    cs_user, cs
-    scs_user, scs
+Run the program by running the gui.py class on an IDE tool like vscode.
+Make sure to have python installed. 
 
-    cs_user only has access to the register event function.
+In order to run the tests, run the test_models.py file in you IDE.
 
-Iteration 2 functionality: 
-    users: 
-    cs_user, cs
-    scs_user, scs
-    fm_user, fm
-    am_user, am
-    pm_user, pm
+To run both the gui.py file and the test_models.py file it can be easily done by pressing
+the "Run Python File" at the top right of the screen for each repsective file.
+This is indicated by a "play" symbol in the vscode environment.
 
-    All users can access their views. 
-    Events can be added and stored in json file events.json.
-    Events get status update after each step in approval process.
-    Tasks can be created and saved in tasks.json
-
-Iteration 3 functionality: 
-    users: 
-    cs_user, cs
-    scs_user, scs
-    fm_user, fm
-    am_user, am
-    pm_user, pm
-    team_user, team
-
-    Sub-teams can review and comment on assigned tasks.
-    Production managers can view tasks reviwed by sub-teams.
-    SM and PM can submit recruitment requests to HR.
-
-Iteration 4 functionality: 
-    users: 
-    cs_user, cs
-    scs_user, scs
-    fm_user, fm
-    am_user, am
-    pm_user, pm
-    team_user, team
-
-    Financial managers review and approve budget-related requests.
-
-
-
-    SECOND RELEASE
-
-    users: 
-    cs_user, cs
-    scs_user, scs
-    fm_user, fm
-    am_user, am
-    pm_user, pm
-    team_user, team
-    hr_user, hr
-
-    HR users can view recruitment request, and create job ads. 
-    PM can create recruitment requests and can create budget requests for a task. 
+In order to test the different views for each user, you can either logout from each page
+or restart the program.
