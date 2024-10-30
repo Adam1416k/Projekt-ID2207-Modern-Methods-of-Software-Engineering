@@ -57,6 +57,18 @@ class BudgetManager:
         self.save_requests()  # Save immediately after adding a new request.
 
 
+    # In BudgetManager
+    def approve_request(self, request, approved):
+        """Approves or rejects a budget request and saves the updated request."""
+        if request.status == "Pending":
+            request.status = "Approved" if approved else "Rejected"
+            request.fm_comment = "Budget is approved" if approved else "Budget is denied"
+            self.save_requests()  # Save the status update immediately
+        return request
+
+
+
+
     def get_pending_budgets_for_fin_approval(self):
         """Returns a list of budget requests that are pending financial approval."""
         return [request for request in self.requests if request.status == "Pending"]

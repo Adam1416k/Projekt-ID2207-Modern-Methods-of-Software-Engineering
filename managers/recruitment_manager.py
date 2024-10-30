@@ -30,14 +30,14 @@ class RecruitmentManager:
 
     def approve_request_by_hr(self, request, comment):
         """HR approval for a recruitment request with comment."""
-        request.status = "Approved by HR"
+        request.status = "Approved"
         request.hr_comment = comment
         self.save_requests()
         print(f"Recruitment request for '{request.position}' approved by HR with comment: {comment}")
 
     def reject_request_by_hr(self, request, comment):
         """HR rejection for a recruitment request with comment."""
-        request.status = "Rejected by HR"
+        request.status = "Rejected"
         request.hr_comment = comment
         self.save_requests()
         print(f"Recruitment request for '{request.position}' rejected by HR with comment: {comment}")
@@ -48,4 +48,4 @@ class RecruitmentManager:
        
     def get_pending_requests_for_HR(self):
         """Return recruitment requests pending financial review."""
-        return [request for request in self.requests if request.fm_status is None]
+        return [request for request in self.requests if request.status is "Pending"]
